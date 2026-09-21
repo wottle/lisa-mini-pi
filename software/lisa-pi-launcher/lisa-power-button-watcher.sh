@@ -11,9 +11,16 @@
 #     Lisa the same way a real one would.
 set -uo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 LISAEM_MATCH="bin/lisaem"
-RUN_SCRIPT="${RUN_SCRIPT:-$HOME/lisa-run-with-led.sh}"
-RUN_ARGS=(-p -d -F -q)
+RUN_SCRIPT="${RUN_SCRIPT:-$SCRIPT_DIR/lisa-run-with-led.sh}"
+# Matches the launcher's own config.json invocation (-k implies -p -d -F
+# plus quit-on-poweroff; -M- force-enables mouse-to-top-reveals-menu,
+# which plain -M actually *disables* - see this project's SETUP.md) so
+# powering on via the physical button behaves identically to picking LISA
+# from the launcher menu.
+RUN_ARGS=(-k -d -M-)
 
 echo "Watching GPIO17 for power-button presses (Ctrl+C to stop)..."
 gpiomon --bias=pull-down --edges=rising --debounce-period=20ms --chip=gpiochip0 17 | while read -r _; do

@@ -7,6 +7,16 @@ be wrong, incomplete, or unnecessary, fix it in the same change that
 changes the actual setup. Don't let this drift from what a fresh Pi
 actually needs.
 
+This directory (`software/lisa-pi-launcher/`) lives inside the
+[`lisa-mini-pi`](../../README.md) umbrella repo. This file covers the
+launcher app itself in detail; `../../docs/software-setup.md` is the
+project-wide walkthrough (LisaEm build, GPIO power-button/LED wiring, and
+how this directory fits into the boot-time systemd setup) - read that one
+first if you're setting up a Pi from scratch. **These two docs currently
+overlap in places and haven't been fully reconciled** - if you find a
+contradiction between them, the more specific/recently-updated one is
+probably right; fix the other one to match.
+
 Every command below runs as a normal user over SSH unless marked
 `(sudo)`. `sudo` commands need to be run interactively by a human, not by
 an agent — an agent should hand you the exact command rather than run it.
@@ -185,8 +195,8 @@ cp <your disk image> ~/minivmac-final/System6.image
 ## 6. The launcher itself
 
 ```
-git clone <this repo's URL> ~/lisa-pi-launcher
-cd ~/lisa-pi-launcher
+git clone https://github.com/wottle/lisa-mini-pi.git ~/lisa-mini-pi
+cd ~/lisa-mini-pi/software/lisa-pi-launcher
 python3 gen_icons.py   # generates the boot-diagnostic icons; only needed
                         # once, or after changing theme.py's ICON_SIZE
 ```
@@ -248,11 +258,58 @@ sudo systemctl enable --now launcher-watchdog.timer
   `config.json` gains a new emulator binary name.**
 - `10-lisa-launcher-power.rules` is a polkit rule letting the launcher's
   `S`/`R` keys (`systemctl poweroff`/`reboot`) run without a password
-  prompt for the kiosk user.
+  prompt for the kiosk user, and letting `Q` and the desktop's "back to
+  kiosk" icon start/stop the three specific units below without one
+  either.
 
 Reboot and confirm it boots straight into the picker with no login
 prompt, no desktop flash, and that Escape/Ctrl+C don't get you out of it
 (none exist by design — see the README's Controls section).
+
+### Q: switching to the full desktop and back
+
+`Q` needs `lightdm` (installed by the full Desktop image, §1) to still be
+present but disabled at boot (`systemctl is-enabled lightdm` should say
+`disabled` — the kiosk owns `tty1` at boot instead). The mechanism is
+`launcher.service`'s `Conflicts=lightdm.service`: starting either service
+auto-stops the other, so switching sessions is just one `systemctl start`
+each way — no manual "stop the other one first" step, and no risk of both
+fighting over the same VT at once.
+
+Install the "Emulator Launcher" desktop entry - as both a desktop icon and an
+Applications-menu entry, since rpd-labwc's desktop-icon rendering has
+been inconsistent:
+
+```
+chmod +x ~/lisa-mini-pi/software/lisa-pi-launcher/system/back-to-kiosk.sh
+mkdir -p ~/Desktop ~/.local/share/applications
+cp ~/lisa-mini-pi/software/lisa-pi-launcher/system/back-to-kiosk.desktop ~/Desktop/back-to-kiosk.desktop
+chmod +x ~/Desktop/back-to-kiosk.desktop
+cp ~/lisa-mini-pi/software/lisa-pi-launcher/system/back-to-kiosk.desktop ~/.local/share/applications/back-to-kiosk.desktop
+chmod +x ~/.local/share/applications/back-to-kiosk.desktop
+```
+
+The desktop icon needs one more step, or double-clicking it prompts
+"this text file appears to be an executable..." instead of launching -
+PCManFM only trusts `.desktop` files created through its own UI by
+default, not ones just copied in:
+
+```
+gio set ~/Desktop/back-to-kiosk.desktop "metadata::trusted" true
+```
+
+This is a per-file extended attribute, not something that survives a
+fresh `cp` - re-run it if the desktop icon is ever replaced. (`back-to-
+kiosk.sh` and `back-to-kiosk.desktop` ship in `system/` and get deployed
+with everything else via the repo's normal rsync/copy; the commands
+above are only needed the first time, to actually place/trust the icon
+outside the repo's own tree.)
+
+**Confirmed working on real hardware** (2026-09-21, Pi 3B): pressing `Q`
+at the picker switches cleanly to the full desktop, and the "Back to
+Lisa Kiosk" launcher switches back. If a future Pi's `lightdm` doesn't
+claim the VT cleanly once `launcher.service` releases it, check
+`journalctl -u lightdm.service` for what went wrong.
 
 ## 8. Verifying the round trip
 
@@ -266,6 +323,21 @@ broken this in the past.
 
 ## Known gaps (update this section as they close)
 
+- **§3's LisaEm build instructions are for the wrong fork/branch on at
+  least one real Pi.** This repo was consolidated from a previously
+  separate `lisa-pi-launcher` checkout that used `wottle/lisaem`'s
+  `pi4-all-enhancements` branch at `~/lisaem`; a Pi 3B set up separately
+  (with the GPIO power button/LED, see `lisa-run-with-led.sh`/
+  `lisa-power-button-watcher.sh` and `../../docs/software-setup.md`) uses
+  `wottle/lisaem`'s `lisa-fixes-1024x768` branch at `~/lisaem-fixes-src`
+  instead, which is the one with the F12 power-button hotkey the GPIO
+  watcher depends on - and which needed a small additional patch (this
+  branch's `-k` kiosk flag was unconditionally forcing mouse-to-top-menu
+  off, with no `-M`/`-M-` flag in this branch to override it, unlike the
+  other one) to keep Shut Down reachable via mouse. §3 needs rewriting to
+  point at `lisa-fixes-1024x768` and drop the reference to `-M-`
+  (this branch has no such flag), or the two branches need reconciling
+  into one that both Pis actually use.
 - LisaEm's/Basilisk II's asset-provisioning steps (§3-4) don't yet
   record exactly how `boot.ROM`/`lisaem-widget.dc42`/`mac-lciii.rom`/
   `macos753.image` were originally obtained/created for this specific
@@ -273,5 +345,9 @@ broken this in the past.
 - The wxWidgets 3.2.1 source-build commands (§3) aren't captured yet.
 - NEXT and APPLE II are unimplemented placeholders in `config.json` — no
   setup steps exist for them yet.
-- An "exit to the full Raspberry Pi Desktop" picker entry is designed
-  but not implemented — see the launcher repo's `CLAUDE.md`.
+- Mini vMac was also added to a second Pi (`config.json` from the first Pi
+  won't just work there unless the same binaries/ROMs/disks are placed at
+  the same paths) — this file assumes one Pi at a time; note which
+  physical unit each of your own local notes refers to.
+- This file and `../../docs/software-setup.md` overlap and haven't been
+  reconciled into one - see the note at the top of this file.

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Emulator Launcher
+Comment=Return to the Lisa boot launcher kiosk
+Exec=/home/wottle/lisa-mini-pi/software/lisa-pi-launcher/system/back-to-kiosk.sh
+Icon=system-run
+Terminal=false
+Categories=System;

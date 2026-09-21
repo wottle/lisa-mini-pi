@@ -6,7 +6,7 @@ import pygame
 import theme
 from rendering import (
     ItemVisual,
-    draw_background,
+    _item_footprint,
     draw_checkerboard,
     draw_checkerboard_cached,
     draw_panel,
@@ -25,19 +25,8 @@ def _make_icon(color=(0, 0, 0)) -> pygame.Surface:
     return icon
 
 
-def test_background_is_a_flat_colorkeyed_marker():
-    # draw_background no longer draws the actual checkerboard (that's
-    # drawn separately, directly on the real screen at native resolution
-    # so it can never be resampled/moire) - it just fills a uniform
-    # colorkey marker so the real checkerboard shows through once this
-    # surface is scaled and blitted on top of it.
-    surface = pygame.Surface((theme.LOGICAL_WIDTH, theme.LOGICAL_HEIGHT))
-
-    draw_background(surface)
-
-    colors = {surface.get_at((x, theme.LOGICAL_HEIGHT - 1))[:3] for x in range(0, 40)}
-    assert len(colors) == 1, "background should be a single flat marker color, no per-pixel pattern"
-    assert surface.get_colorkey()[:3] in colors, "the fill color must match the surface's own colorkey"
+def _make_screen() -> pygame.Surface:
+    return pygame.Surface((theme.SCREEN_WIDTH, theme.SCREEN_HEIGHT))
 
 
 def test_draw_checkerboard_alternates_black_and_white_at_requested_cell_size():
@@ -74,7 +63,7 @@ def test_draw_checkerboard_cached_reuses_same_size_rebuilds_on_resize():
 
 
 def test_draw_panel_returns_interior_rect_within_panel_bounds():
-    surface = pygame.Surface((theme.LOGICAL_WIDTH, theme.LOGICAL_HEIGHT))
+    surface = _make_screen()
     surface.fill((0, 0, 0))
 
     interior = draw_panel(surface)
@@ -88,16 +77,19 @@ def test_draw_panel_returns_interior_rect_within_panel_bounds():
 
 
 def test_draw_item_selected_fills_area_black():
-    surface = pygame.Surface((theme.LOGICAL_WIDTH, theme.LOGICAL_HEIGHT))
+    surface = _make_screen()
     surface.fill((255, 255, 255))
     item = ItemVisual(icon=_make_icon(), label="MEM", status_icon=None, selected=True)
 
-    draw_item(surface, center_x=100, top_y=40, item=item)
+    draw_item(surface, center_x=200, top_y=40, item=item)
 
     # somewhere in the item's footprint there should be a black background
     # pixel from the reverse-video fill (not just the icon's own black
-    # pixels, which a non-selected icon would also have).
-    footprint = pygame.Rect(100 - 40, 40, 80, 40)
+    # pixels, which a non-selected icon would also have). Derive the
+    # actual footprint from the real layout function rather than
+    # hardcoding geometry that would silently drift out of sync with
+    # theme.py's icon/spacing constants.
+    footprint = _item_footprint(center_x=200, top_y=40, item=item)
     black_background_found = any(
         surface.get_at((x, y))[:3] == (0, 0, 0)
         for x in range(footprint.left, footprint.left + 5)
@@ -106,20 +98,32 @@ def test_draw_item_selected_fills_area_black():
     assert black_background_found
 
 
-def test_top_strip_is_white_not_background_marker():
-    surface = pygame.Surface((theme.LOGICAL_WIDTH, theme.LOGICAL_HEIGHT))
-    draw_background(surface)
+def test_top_strip_is_white():
+    surface = _make_screen()
+    surface.fill((0, 0, 0))  # anything other than white, to prove draw_top_strip actually paints it
+
     draw_top_strip(surface)
 
     # A pixel near the left edge of the strip (away from the right-aligned
-    # status glyph) should be plain white, not the colorkey marker the
-    # background alone would have produced there.
+    # status glyph) should be plain white.
     assert surface.get_at((2, 0))[:3] == (255, 255, 255)
     assert surface.get_at((2, theme.TOP_STRIP_HEIGHT - 1))[:3] == (255, 255, 255)
 
 
+def test_top_strip_spans_the_full_surface_width():
+    # draw_top_strip takes its width from the surface it's given (there's
+    # no fixed logical-canvas width anymore) - confirm it actually fills
+    # a surface of a different width than theme.SCREEN_WIDTH.
+    surface = pygame.Surface((200, theme.TOP_STRIP_HEIGHT))
+    surface.fill((0, 0, 0))
+
+    draw_top_strip(surface)
+
+    assert surface.get_at((199, 0))[:3] == (255, 255, 255)
+
+
 def test_render_frame_draws_top_strip():
-    surface = pygame.Surface((theme.LOGICAL_WIDTH, theme.LOGICAL_HEIGHT))
+    surface = _make_screen()
     render_frame(surface, "SELECT SYSTEM...", "", [])
     assert surface.get_at((2, 0))[:3] == (255, 255, 255)
 
@@ -147,23 +151,17 @@ def test_real_shipped_icons_match_theme_icon_size():
         )
 
 
-def test_checkerboard_shows_through_scaled_logical_surface_blit():
-    # Integration check for the colorkey pipeline: draw_background's
-    # colorkey marker must survive pygame.transform.scale and still blit
-    # as transparent, or the checkerboard drawn on the real screen would
-    # be hidden behind an opaque logical-surface background again.
-    real_screen = pygame.Surface((theme.LOGICAL_WIDTH * 2, theme.LOGICAL_HEIGHT * 2))
-    logical_surface = pygame.Surface((theme.LOGICAL_WIDTH, theme.LOGICAL_HEIGHT))
+def test_checkerboard_survives_under_render_frame():
+    # render_frame draws directly onto whatever's already on the surface
+    # (no separate logical surface/colorkey compositing step anymore) -
+    # a checkerboard drawn first should still show through everywhere
+    # render_frame doesn't paint over (i.e. away from the panel).
+    surface = _make_screen()
+    draw_checkerboard_cached(surface, 4)
+    render_frame(surface, "SELECT SYSTEM...", "", [])
 
-    draw_checkerboard_cached(real_screen, 4)
-    render_frame(logical_surface, "SELECT SYSTEM...", "", [])
-    scaled = pygame.transform.scale(logical_surface, real_screen.get_size())
-    real_screen.blit(scaled, (0, 0))
-
-    # A corner far from the panel should show checkerboard colors, not a
-    # colorkey marker or any other single flat color.
-    corner_y = real_screen.get_height() - 20
-    samples = {real_screen.get_at((x, corner_y))[:3] for x in range(0, 40)}
+    corner_y = surface.get_height() - 20
+    samples = {surface.get_at((x, corner_y))[:3] for x in range(0, 40)}
     assert samples == {(0, 0, 0), (255, 255, 255)}
 
 
@@ -176,7 +174,7 @@ def test_item_layout_matches_what_render_frame_actually_draws():
         ItemVisual(icon=_make_icon(), label="LISA", status_icon=None, selected=True),
         ItemVisual(icon=_make_icon(), label="MACINTOSH", status_icon=None, selected=False),
     ]
-    surface = pygame.Surface((theme.LOGICAL_WIDTH, theme.LOGICAL_HEIGHT))
+    surface = _make_screen()
     render_frame(surface, "SELECT SYSTEM...", "", items)
 
     footprints = item_layout(items)
@@ -207,7 +205,7 @@ def test_item_layout_empty_for_no_items():
 
 
 def test_render_frame_runs_without_error_with_multiple_items():
-    surface = pygame.Surface((theme.LOGICAL_WIDTH, theme.LOGICAL_HEIGHT))
+    surface = _make_screen()
     items = [
         ItemVisual(icon=_make_icon(), label="LISA", status_icon=None, selected=True),
         ItemVisual(icon=_make_icon(), label="MACINTOSH", status_icon=None, selected=False),
@@ -216,5 +214,5 @@ def test_render_frame_runs_without_error_with_multiple_items():
     render_frame(surface, "SELECT SYSTEM...", "LISA / OFFICE SYSTEM 3.1", items)
     # no exception is the primary assertion; also sanity-check something
     # was actually drawn (not a blank surface).
-    colors = {surface.get_at((x, y))[:3] for x in range(0, theme.LOGICAL_WIDTH, 10) for y in range(0, theme.LOGICAL_HEIGHT, 10)}
+    colors = {surface.get_at((x, y))[:3] for x in range(0, theme.SCREEN_WIDTH, 10) for y in range(0, theme.SCREEN_HEIGHT, 10)}
     assert len(colors) > 1

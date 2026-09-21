@@ -13,22 +13,26 @@ _TRANSPARENT_KEY = (1, 2, 3)
 # surface scaling pipeline at all), so a real-pixel size is what actually
 # controls how big it looks.
 #
-# Capped at 64x64 (down from an earlier 80x80): the Pi's vc4/KMS hardware
-# cursor plane tops out at 64x64. A larger cursor surface forces X to fall
-# back to a software-rendered cursor, which isn't synced with this app's
-# own frame redraws and was causing a visible flicker.
-SIZE = 64
-_OUTLINE_WIDTH = 5
+# Also stays well under 64x64: the Pi's vc4/KMS hardware cursor plane
+# tops out at 64x64, and a larger cursor surface forces X to fall back to
+# a software-rendered cursor, which isn't synced with this app's own
+# frame redraws and was causing a visible flicker.
+#
+# Shrunk (2/3 scale) from an earlier 64/80x64 alongside the icon size
+# reduction - it was oversized enough to make the jump into an emulator
+# session feel jarring by comparison.
+SIZE = 42
+_OUTLINE_WIDTH = 3
 
 # Classic arrow-pointer silhouette, tip at the origin (the hotspot).
 _ARROW_POINTS = [
     (0, 0),
-    (0, 45),
-    (11, 35),
-    (19, 51),
-    (27, 48),
-    (19, 32),
-    (34, 32),
+    (0, 30),
+    (7, 23),
+    (13, 34),
+    (18, 32),
+    (13, 21),
+    (23, 21),
 ]
 
 

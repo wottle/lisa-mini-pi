@@ -84,10 +84,15 @@ def convert_icon(source_path: str, size: int) -> Image.Image:
             min(image.width, center_x + half_side),
             min(image.height, center_y + half_side),
         ))
-    image = image.resize((size, size), Image.LANCZOS)
-    # Hard-threshold back to pure black/white: LANCZOS resampling
-    # introduces intermediate gray values at edges, which this project's
-    # 1-bit aesthetic doesn't allow.
+    # NEAREST, not LANCZOS: this source art is already blocky pixel art,
+    # not a smooth/photographic image, so a smoothing resample algorithm
+    # is the wrong tool - it blends soft gray edges that the hard
+    # threshold below then chops at a somewhat arbitrary boundary,
+    # producing slightly inconsistent/jagged edges compared to NEAREST
+    # (confirmed side by side at both 32px and 48px target sizes).
+    image = image.resize((size, size), Image.NEAREST)
+    # Hard-threshold back to pure black/white: even NEAREST can land
+    # exactly between two source shades at some pixels.
     image = image.point(lambda p: 255 if p >= _THRESHOLD else 0)
     return image.convert("1")
 

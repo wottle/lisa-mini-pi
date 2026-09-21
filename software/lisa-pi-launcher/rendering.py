@@ -1,6 +1,7 @@
-"""Composes the background, the diagnostic/selection panel (with its drop
-shadow), and the row of icon+label+status items onto the logical 512x384
-surface. launcher.py scales the result up to the real screen."""
+"""Composes the checkerboard background, the diagnostic/selection panel
+(with its drop shadow), and the row of icon+label+status items directly
+onto the real screen surface - see theme.py for why there's no separate
+logical/design surface scaled up to it."""
 
 from dataclasses import dataclass
 
@@ -11,10 +12,6 @@ from bitmap_font import render_text, text_size
 
 _BLACK = (0, 0, 0)
 _WHITE = (255, 255, 255)
-
-# Marker color for "this logical-surface pixel is background, not panel
-# content" - never a real drawn color, so it's safe to use as a colorkey.
-_TRANSPARENT_KEY = (1, 2, 3)
 
 # Cache for the checkerboard: it's fully deterministic for a given surface
 # size, so it's built once and blitted from then on rather than redrawing
@@ -31,24 +28,10 @@ class ItemVisual:
     selected: bool
 
 
-def draw_background(surface: pygame.Surface) -> None:
-    # The checkerboard itself is drawn separately, directly onto the real
-    # screen at its own native resolution (see draw_checkerboard) so it's
-    # never resampled - nearest-neighbor scaling a fine repeating pattern
-    # produces moire at any non-integer scale ratio (confirmed on a 1080p
-    # test display), no matter how coarse the pattern's cells are. This
-    # logical-surface background is just a colorkeyed placeholder so the
-    # real checkerboard shows through everywhere except the opaque panel
-    # once this surface is scaled and blitted on top of it.
-    surface.fill(_TRANSPARENT_KEY)
-    surface.set_colorkey(_TRANSPARENT_KEY)
-
-
 def draw_checkerboard(surface: pygame.Surface, cell_size: int) -> None:
     """Draws an axis-aligned black/white checkerboard directly onto
-    `surface`, at `surface`'s own pixel resolution. Call this on the real
-    screen surface (never on the logical one, and never through
-    pygame.transform.scale) so the pattern's cell boundaries always land
+    `surface`, at `surface`'s own pixel resolution and never through
+    pygame.transform.scale, so the pattern's cell boundaries always land
     on exact pixel boundaries and the checkerboard can never alias,
     regardless of the display's actual resolution."""
     width, height = surface.get_size()
@@ -83,9 +66,9 @@ def _row_count(item_count: int) -> int:
 
 
 def panel_interior_rect(row_count: int = 1) -> pygame.Rect:
-    """The panel's interior content rect, in logical-surface coordinates.
-    Pure layout math (no drawing) so it can be reused by both draw_panel
-    and mouse hit-testing without them ever drifting apart."""
+    """The panel's interior content rect, in screen coordinates. Pure
+    layout math (no drawing) so it can be reused by both draw_panel and
+    mouse hit-testing without them ever drifting apart."""
     panel_rect = pygame.Rect(theme.PANEL_X, theme.PANEL_Y, theme.PANEL_WIDTH, _panel_height(row_count))
     return panel_rect.inflate(-theme.PANEL_CONTENT_INSET, -theme.PANEL_CONTENT_INSET)
 
@@ -108,11 +91,10 @@ def draw_panel(surface: pygame.Surface, row_count: int = 1) -> pygame.Rect:
 
 
 def _item_footprint(center_x: int, top_y: int, item: ItemVisual) -> pygame.Rect:
-    """An item's reverse-video footprint rect, in logical-surface
-    coordinates. Pure layout math (no drawing) so it can be reused by
-    both draw_item and mouse hit-testing without them ever drifting
-    apart."""
-    label_size = text_size(item.label)
+    """An item's reverse-video footprint rect, in screen coordinates.
+    Pure layout math (no drawing) so it can be reused by both draw_item
+    and mouse hit-testing without them ever drifting apart."""
+    label_size = text_size(item.label, scale=theme.FONT_SCALE)
     status_size = (theme.CHECK_ICON_SIZE, theme.CHECK_ICON_SIZE) if item.status_icon else (0, 0)
 
     # At least as wide as its content (icon/label/status, plus padding),
@@ -137,9 +119,9 @@ def _item_footprint(center_x: int, top_y: int, item: ItemVisual) -> pygame.Rect:
 
 
 def item_layout(items: list[ItemVisual]) -> list[pygame.Rect]:
-    """Each item's footprint rect, in logical-surface coordinates, in the
-    same positions render_frame draws them at - used both for drawing and
-    for mouse hit-testing (see hit_test). Items beyond ITEMS_PER_ROW wrap
+    """Each item's footprint rect, in screen coordinates, in the same
+    positions render_frame draws them at - used both for drawing and for
+    mouse hit-testing (see hit_test). Items beyond ITEMS_PER_ROW wrap
     onto additional rows, each independently centered, rather than
     overflowing the panel's width."""
     if not items:
@@ -162,8 +144,8 @@ def item_layout(items: list[ItemVisual]) -> list[pygame.Rect]:
 
 def hit_test(items: list[ItemVisual], point: tuple[int, int]) -> int | None:
     """Returns the index of the item whose footprint contains `point`
-    (logical-surface coordinates), or None if the point isn't over any
-    item - used to turn a mouse position into a selection."""
+    (screen coordinates), or None if the point isn't over any item -
+    used to turn a mouse position into a selection."""
     for index, footprint in enumerate(item_layout(items)):
         if footprint.collidepoint(point):
             return index
@@ -172,7 +154,7 @@ def hit_test(items: list[ItemVisual], point: tuple[int, int]) -> int | None:
 
 def draw_item(surface: pygame.Surface, center_x: int, top_y: int, item: ItemVisual) -> None:
     footprint = _item_footprint(center_x, top_y, item)
-    label_size = text_size(item.label)
+    label_size = text_size(item.label, scale=theme.FONT_SCALE)
 
     fg_color = _WHITE if item.selected else _BLACK
     bg_color = _BLACK if item.selected else None
@@ -183,7 +165,7 @@ def draw_item(surface: pygame.Surface, center_x: int, top_y: int, item: ItemVisu
     label_rect = pygame.Rect(0, 0, *label_size)
     label_rect.centerx = center_x
     label_rect.top = footprint.top + theme.ITEM_ELEMENT_GAP
-    render_text(surface, item.label, label_rect.left, label_rect.top, color=fg_color)
+    render_text(surface, item.label, label_rect.left, label_rect.top, scale=theme.FONT_SCALE, color=fg_color)
 
     icon_rect = pygame.Rect(0, 0, theme.ICON_SIZE, theme.ICON_SIZE)
     icon_rect.centerx = center_x
@@ -214,29 +196,34 @@ def _invert_icon(icon: pygame.Surface) -> pygame.Surface:
 
 
 def draw_top_strip(surface: pygame.Surface) -> None:
-    """A thin white bar across the very top of the logical surface, with a
-    single small right-aligned status character - per the spec, a
-    placeholder glyph that isn't load-bearing for v1."""
-    strip_rect = pygame.Rect(0, 0, theme.LOGICAL_WIDTH, theme.TOP_STRIP_HEIGHT)
+    """A thin white bar across the very top of the screen, with a single
+    small right-aligned status character - per the spec, a placeholder
+    glyph that isn't load-bearing for v1."""
+    width, _ = surface.get_size()
+    strip_rect = pygame.Rect(0, 0, width, theme.TOP_STRIP_HEIGHT)
     surface.fill(_WHITE, strip_rect)
-    char_width, char_height = text_size("H")
-    x = theme.LOGICAL_WIDTH - char_width - theme.PANEL_CONTENT_INSET
+    char_width, char_height = text_size("H", scale=theme.FONT_SCALE)
+    x = width - char_width - theme.PANEL_CONTENT_INSET
     y = (theme.TOP_STRIP_HEIGHT - char_height) // 2
-    render_text(surface, "H", x, y, color=_BLACK)
+    render_text(surface, "H", x, y, scale=theme.FONT_SCALE, color=_BLACK)
 
 
 def render_frame(surface: pygame.Surface, line1: str, line2: str, items: list[ItemVisual]) -> None:
-    draw_background(surface)
+    """Draws one full frame directly onto `surface` (the real screen).
+    Callers are expected to have already drawn the checkerboard
+    (draw_checkerboard_cached) - everything here is opaque and simply
+    overdraws it where the top strip/panel/items are."""
     draw_top_strip(surface)
     interior = draw_panel(surface, row_count=_row_count(len(items)))
 
-    render_text(surface, line1, interior.left, interior.top, color=_BLACK)
+    render_text(surface, line1, interior.left, interior.top, scale=theme.FONT_SCALE, color=_BLACK)
     if line2:
         render_text(
             surface,
             line2,
             interior.left,
-            interior.top + text_size(line1)[1] + theme.HEADER_LINE_GAP,
+            interior.top + text_size(line1, scale=theme.FONT_SCALE)[1] + theme.HEADER_LINE_GAP,
+            scale=theme.FONT_SCALE,
             color=_BLACK,
         )
 

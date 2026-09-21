@@ -87,9 +87,15 @@ itself exiting.
   magnified to 1024x684, hardcoded for the real 1024x768 target panel) —
   unlike the launcher's own rendering or LisaEm/Basilisk II's fullscreen
   modes, it doesn't adapt to whatever display is actually connected.
-- An "exit to the full Raspberry Pi Desktop" picker entry was discussed —
-  the Pi has a full desktop available (`lightdm` + labwc/rpd-labwc,
-  currently disabled in favor of the kiosk) but wiring it in needs the
-  watchdog taught to recognize "desktop mode" (so it doesn't immediately
-  fight the switch) and a polkit rule extension to start/stop the
-  relevant systemd units without a password prompt — not yet implemented.
+- **Implemented and confirmed working on real hardware** (Pi 3B,
+  2026-09-21): `Q` switches to the full Raspberry Pi Desktop (`lightdm` +
+  labwc/rpd-labwc) and an "Emulator Launcher" launcher (desktop icon +
+  Applications-menu entry) returns — see `SETUP.md` §7. Built on
+  `launcher.service`'s `Conflicts=lightdm.service` (starting either
+  auto-stops the other) plus a polkit rule scoped to exactly
+  `launcher.service`/`launcher-watchdog.timer`/`lightdm.service`. One
+  install gotcha: PCManFM only trusts a `.desktop` file created through
+  its own UI by default — a copied-in one prompts "this text file
+  appears to be an executable..." on double-click until you run
+  `gio set <path> "metadata::trusted" true` on it (a per-file extended
+  attribute, doesn't survive a fresh `cp`).

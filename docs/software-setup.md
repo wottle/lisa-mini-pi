@@ -95,11 +95,23 @@ Raspberry Pi OS.
 Launches LisaEm, turning the LED on for as long as it's running:
 
 ```bash
-software/lisa-pi-launcher/lisa-run-with-led.sh -p -d -F -q
+software/lisa-pi-launcher/lisa-run-with-led.sh -k -d
 ```
 
-(`-p -d -F -q`: power on immediately, boot from the ProFile/Widget drive,
-fullscreen, quit the process once the Lisa powers off.)
+(`-k`: kiosk mode - power on immediately, fullscreen, quit the process
+once the Lisa powers off; `-d`: boot from the ProFile/Widget drive. This
+is also exactly what `config.json`'s `lisa` entry passes, so the button
+and the launcher menu behave identically.)
+
+**`-k` on the `lisa-fixes-1024x768` branch used to unconditionally force
+mouse-to-top-reveals-menu off** - fine for a picker with no other UI, but
+on a kiosk with no titlebar/window-manager chrome, that's the *only* way
+to reach the Special/Shut Down menu without a keyboard, so it's been
+patched to leave that setting at its saved default (on) instead. There's
+no `-M`/`-M-` flag on this branch to fix it via the command line the way
+the other `wottle/lisaem` branch used - see the patch note in
+`software/lisa-pi-launcher/SETUP.md`'s Known Gaps if rebuilding from a
+clean checkout of this branch.
 
 ### `lisa-power-button-watcher.sh`
 

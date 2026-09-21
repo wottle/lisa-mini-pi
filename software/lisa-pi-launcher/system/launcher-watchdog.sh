@@ -5,7 +5,8 @@
 # the whole X session died without the launcher process itself exiting)
 # - restart the kiosk service to recover.
 #
-# Update this list if config.json gains emulators beyond LisaEm/Basilisk II.
+# Update this list if config.json gains emulators beyond LisaEm/Basilisk
+# II/Mini vMac.
 if pgrep -f "python3 launcher\.py$" > /dev/null 2>&1; then
     exit 0
 fi
@@ -13,6 +14,9 @@ if pgrep -x lisaem > /dev/null 2>&1; then
     exit 0
 fi
 if pgrep -x BasiliskII > /dev/null 2>&1; then
+    exit 0
+fi
+if pgrep -x minivmac > /dev/null 2>&1; then
     exit 0
 fi
 

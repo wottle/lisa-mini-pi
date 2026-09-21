@@ -16,11 +16,13 @@
 # invisible/chromeless, matching the no-window-manager look.
 openbox &
 
-# Persistent GPIO power-button watcher: runs for the whole X session,
-# independent of whether the launcher menu or an emulator is currently
-# showing (see lisa-power-button-watcher.sh for the on/off logic).
-/home/wottle/lisa-power-button-watcher.sh >> /home/wottle/lisa-run-with-led.log 2>&1 &
+cd /home/wottle/lisa-mini-pi/software/lisa-pi-launcher || exit 1
 
-cd /home/wottle/lisa-pi-launcher || exit 1
+# Persistent GPIO power-button watcher: runs for the whole X session, not
+# just while LisaEm is running - see lisa-power-button-watcher.sh for what
+# it actually does on each button press. Logs to its own file since it
+# runs detached from any terminal.
+./lisa-power-button-watcher.sh >> "$HOME/lisa-power-button-watcher.log" 2>&1 &
+
 export SDL_VIDEODRIVER=x11
 exec python3 launcher.py

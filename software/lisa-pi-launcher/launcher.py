@@ -85,42 +85,28 @@ def _system_items_visual(state: LauncherState, icons: dict[str, pygame.Surface])
 
 def _draw_frame(
     real_screen: pygame.Surface,
-    screen_size: tuple[int, int],
-    logical_surface: pygame.Surface,
     line1: str,
     line2: str,
     items: list[ItemVisual],
 ) -> None:
     # The checkerboard is drawn directly onto real_screen at its own
-    # native resolution (never scaled, so it never aliases/moires); the
-    # panel/icons/text are rendered at logical resolution as usual and
-    # blitted on top with their background colorkeyed transparent, so the
-    # checkerboard shows through everywhere except the opaque panel.
+    # native resolution (never scaled, so it never aliases/moires);
+    # render_frame then draws the opaque top strip/panel/items directly
+    # on top of it, on this same surface - see theme.py for why there's
+    # no separate logical surface scaled up to this one anymore.
     draw_checkerboard_cached(real_screen, theme.CHECKER_CELL_SIZE)
-    render_frame(logical_surface, line1, line2, items)
-    scaled = pygame.transform.scale(logical_surface, screen_size)
-    real_screen.blit(scaled, (0, 0))
+    render_frame(real_screen, line1, line2, items)
     pygame.display.flip()
 
 
 def _open_fullscreen() -> pygame.Surface:
     # (0, 0) tells SDL to use the current desktop resolution for fullscreen,
     # so the launcher fills whatever display it's actually running on
-    # instead of a fixed 1024x768 that may not match the real panel.
+    # instead of a fixed 1024x768 that may not match the real panel. The
+    # picker's own content is still laid out for a fixed 1024x768 (see
+    # theme.py) - on a differently-sized display it draws at that fixed
+    # size/position rather than adapting, which is an accepted tradeoff.
     return pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-
-
-def _to_logical_point(pos: tuple[int, int], screen_size: tuple[int, int]) -> tuple[int, int]:
-    # Mouse positions arrive in real-screen coordinates; item_layout()/
-    # hit_test() work in logical-surface coordinates, so convert using the
-    # same ratio the logical->real scale-up uses (screen_size may not be a
-    # clean multiple of LOGICAL_WIDTH/HEIGHT on a non-1024x768 display).
-    x, y = pos
-    screen_w, screen_h = screen_size
-    return (
-        int(x * theme.LOGICAL_WIDTH / screen_w),
-        int(y * theme.LOGICAL_HEIGHT / screen_h),
-    )
 
 
 def main() -> None:
@@ -136,8 +122,6 @@ def main() -> None:
     pygame.event.set_grab(True)
 
     real_screen = _open_fullscreen()
-    screen_size = real_screen.get_size()
-    logical_surface = pygame.Surface((theme.LOGICAL_WIDTH, theme.LOGICAL_HEIGHT))
     clock = pygame.time.Clock()
 
     systems = load_config("config.json")
@@ -171,27 +155,37 @@ def main() -> None:
                 elif event.key == pygame.K_RIGHT:
                     state.move_selection(1)
                 elif event.key == pygame.K_RETURN:
-                    real_screen = _launch_selected(state, real_screen, screen_size, logical_surface, icons)
+                    real_screen = _launch_selected(state, real_screen, icons)
                 elif event.key == pygame.K_s:
                     subprocess.run(["systemctl", "poweroff"])
                 elif event.key == pygame.K_r:
                     subprocess.run(["systemctl", "reboot"])
                 elif event.key == pygame.K_q:
+                    # Suppress the watchdog first - it doesn't know about
+                    # the desktop session and would otherwise see no
+                    # launcher/emulator process running and restart the
+                    # kiosk out from under it within 30s. Starting
+                    # lightdm.service is what actually switches sessions
+                    # (see launcher.service's Conflicts=lightdm.service -
+                    # starting it auto-stops us, which is why this is the
+                    # last action taken here).
+                    subprocess.run(["systemctl", "stop", "launcher-watchdog.timer"])
+                    subprocess.run(["systemctl", "start", "lightdm.service"])
                     running = False
             elif event.type == pygame.MOUSEMOTION and diag.done:
                 # Hover selects, mirroring the arrow keys - so someone
                 # without a keyboard can see what they're about to pick
-                # before committing with a click.
-                point = _to_logical_point(event.pos, screen_size)
-                index = hit_test(_system_items_visual(state, icons), point)
+                # before committing with a click. event.pos is already in
+                # screen coordinates, matching item_layout()/hit_test()
+                # directly now that there's no separate logical surface.
+                index = hit_test(_system_items_visual(state, icons), event.pos)
                 if index is not None:
                     state.select_index(index)
             elif event.type == pygame.MOUSEBUTTONDOWN and diag.done and event.button == 1:
-                point = _to_logical_point(event.pos, screen_size)
-                index = hit_test(_system_items_visual(state, icons), point)
+                index = hit_test(_system_items_visual(state, icons), event.pos)
                 if index is not None:
                     state.select_index(index)
-                    real_screen = _launch_selected(state, real_screen, screen_size, logical_surface, icons)
+                    real_screen = _launch_selected(state, real_screen, icons)
 
         if not diag.done:
             diag.update(dt)
@@ -201,7 +195,7 @@ def main() -> None:
             items = _system_items_visual(state, icons)
             line1, line2 = state.panel_lines()
 
-        _draw_frame(real_screen, screen_size, logical_surface, line1, line2, items)
+        _draw_frame(real_screen, line1, line2, items)
 
     pygame.quit()
 
@@ -209,8 +203,6 @@ def main() -> None:
 def _launch_selected(
     state: LauncherState,
     real_screen: pygame.Surface,
-    screen_size: tuple[int, int],
-    logical_surface: pygame.Surface,
     icons: dict[str, pygame.Surface],
 ) -> pygame.Surface:
     state.start_selected()
@@ -220,7 +212,7 @@ def _launch_selected(
     # a moment rather than being set and discarded before the next flip.
     items = _system_items_visual(state, icons)
     line1, line2 = state.panel_lines()
-    _draw_frame(real_screen, screen_size, logical_surface, line1, line2, items)
+    _draw_frame(real_screen, line1, line2, items)
 
     # Cover the screen in solid black and leave this window mapped, rather
     # than tearing the display down and recreating it. There's no window
@@ -271,7 +263,7 @@ def _launch_selected(
         pygame.event.clear()
 
     if launch_failed:
-        _draw_frame(real_screen, screen_size, logical_surface, "LAUNCH FAILED", "", _system_items_visual(state, icons))
+        _draw_frame(real_screen, "LAUNCH FAILED", "", _system_items_visual(state, icons))
         pygame.time.wait(1000)
 
     return real_screen
