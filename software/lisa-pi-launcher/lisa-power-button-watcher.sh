@@ -16,11 +16,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LISAEM_MATCH="bin/lisaem"
 RUN_SCRIPT="${RUN_SCRIPT:-$SCRIPT_DIR/lisa-run-with-led.sh}"
 # Matches the launcher's own config.json invocation (-k implies -p -d -F
-# plus quit-on-poweroff; -M- force-enables mouse-to-top-reveals-menu,
-# which plain -M actually *disables* - see this project's SETUP.md) so
-# powering on via the physical button behaves identically to picking LISA
-# from the launcher menu.
-RUN_ARGS=(-k -d -M-)
+# plus quit-on-poweroff). No -M/-M- flag: the lisa-fixes-1024x768 branch
+# doesn't register one at all - see this project's SETUP.md Known Gaps for
+# how mouse-to-top-menu is instead kept on via a source patch. Using -M-
+# here would make LisaEm reject the whole command line.
+RUN_ARGS=(-k -d)
 
 echo "Watching GPIO17 for power-button presses (Ctrl+C to stop)..."
 gpiomon --bias=pull-down --edges=rising --debounce-period=20ms --chip=gpiochip0 17 | while read -r _; do

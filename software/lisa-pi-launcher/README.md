@@ -37,7 +37,7 @@ shell string) that blocks until the emulator exits.
 - Enter: launch the selected system
 - S: shut down the Pi
 - R: reboot the Pi
-- Q: switch to the full Raspberry Pi Desktop (see the caveat above); a
+- Q: switch to the full Raspberry Pi Desktop (see the caveat above); an
   "Emulator Launcher" desktop icon returns to the kiosk
 
 ## Running the tests

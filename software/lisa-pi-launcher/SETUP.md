@@ -306,8 +306,8 @@ above are only needed the first time, to actually place/trust the icon
 outside the repo's own tree.)
 
 **Confirmed working on real hardware** (2026-09-21, Pi 3B): pressing `Q`
-at the picker switches cleanly to the full desktop, and the "Back to
-Lisa Kiosk" launcher switches back. If a future Pi's `lightdm` doesn't
+at the picker switches cleanly to the full desktop, and the "Emulator
+Launcher" launcher switches back. If a future Pi's `lightdm` doesn't
 claim the VT cleanly once `launcher.service` releases it, check
 `journalctl -u lightdm.service` for what went wrong.
 
