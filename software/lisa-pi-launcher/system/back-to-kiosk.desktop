@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Back to Lisa Kiosk
+Comment=Return to the Lisa boot launcher kiosk
+Exec=/home/wottle/lisa-pi-launcher/system/back-to-kiosk.sh
+Icon=system-run
+Terminal=false
+Categories=System;

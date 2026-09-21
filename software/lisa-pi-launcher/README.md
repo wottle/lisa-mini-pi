@@ -20,11 +20,10 @@ python3 launcher.py
 
 Press Escape... actually there is no Escape/quit binding by design (it's a
 kiosk); use Ctrl+C in the terminal you launched it from during development,
-or `S`/`R`/`Q` to shut down/reboot/quit on real hardware. Note `Q` just
-exits the Python process - under `launcher.service`'s `Restart=always` (see
-below), systemd respawns the kiosk within a couple seconds rather than
-leaving a desktop session up; it's meant as a quick dev/testing exit, not
-a real "switch to desktop" feature.
+or `S`/`R`/`Q` to shut down/reboot/switch to the full desktop on real
+hardware. `Q` only works when `system/back-to-kiosk.desktop` and the
+`lightdm`/watchdog setup from `SETUP.md` are installed - without them it's
+equivalent to Ctrl+C (the kiosk just respawns via `Restart=always`).
 
 ## Configuration
 
@@ -38,7 +37,8 @@ shell string) that blocks until the emulator exits.
 - Enter: launch the selected system
 - S: shut down the Pi
 - R: reboot the Pi
-- Q: quit the launcher process (see the caveat above about `Restart=always`)
+- Q: switch to the full Raspberry Pi Desktop (see the caveat above); a
+  "Back to Lisa Kiosk" desktop icon returns to the kiosk
 
 ## Running the tests
 

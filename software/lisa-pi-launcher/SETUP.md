@@ -248,11 +248,45 @@ sudo systemctl enable --now launcher-watchdog.timer
   `config.json` gains a new emulator binary name.**
 - `10-lisa-launcher-power.rules` is a polkit rule letting the launcher's
   `S`/`R` keys (`systemctl poweroff`/`reboot`) run without a password
-  prompt for the kiosk user.
+  prompt for the kiosk user, and letting `Q` and the desktop's "back to
+  kiosk" icon start/stop the three specific units below without one
+  either.
 
 Reboot and confirm it boots straight into the picker with no login
 prompt, no desktop flash, and that Escape/Ctrl+C don't get you out of it
 (none exist by design — see the README's Controls section).
+
+### Q: switching to the full desktop and back
+
+`Q` needs `lightdm` (installed by the full Desktop image, §1) to still be
+present but disabled at boot (`systemctl is-enabled lightdm` should say
+`disabled` — the kiosk owns `tty1` at boot instead). The mechanism is
+`launcher.service`'s `Conflicts=lightdm.service`: starting either service
+auto-stops the other, so switching sessions is just one `systemctl start`
+each way — no manual "stop the other one first" step, and no risk of both
+fighting over the same VT at once.
+
+Install the "back to kiosk" desktop icon:
+
+```
+cp system/back-to-kiosk.sh ~/lisa-pi-launcher/system/back-to-kiosk.sh
+chmod +x ~/lisa-pi-launcher/system/back-to-kiosk.sh
+mkdir -p ~/Desktop
+cp system/back-to-kiosk.desktop ~/Desktop/back-to-kiosk.desktop
+chmod +x ~/Desktop/back-to-kiosk.desktop
+```
+
+(`back-to-kiosk.sh` ships in `system/` and gets deployed with everything
+else via the repo's normal rsync/copy — the commands above are only
+needed the first time, to also place the desktop icon.)
+
+**Not yet verified on real hardware:** whether `lightdm` actually claims
+`tty1` cleanly once `launcher.service` releases it (`Conflicts=` stops
+the losing side, but the *winning* side still has to successfully do its
+own VT switch/PAM session setup immediately afterward) - watch this
+closely the first time `Q` is tested on each new Pi, and check
+`journalctl -u lightdm.service` if the screen goes blank/stays black
+instead of showing a desktop.
 
 ## 8. Verifying the round trip
 
@@ -273,5 +307,10 @@ broken this in the past.
 - The wxWidgets 3.2.1 source-build commands (§3) aren't captured yet.
 - NEXT and APPLE II are unimplemented placeholders in `config.json` — no
   setup steps exist for them yet.
-- An "exit to the full Raspberry Pi Desktop" picker entry is designed
-  but not implemented — see the launcher repo's `CLAUDE.md`.
+- Mini vMac was also added to a second Pi (`config.json` from the first Pi
+  won't just work there unless the same binaries/ROMs/disks are placed at
+  the same paths) — this file assumes one Pi at a time; note which
+  physical unit each of your own local notes refers to.
+- `Q` (switch to the full desktop, §7) is implemented but not yet
+  confirmed working end-to-end on real hardware — see the "not yet
+  verified" note in §7.

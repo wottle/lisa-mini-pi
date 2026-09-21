@@ -87,9 +87,12 @@ itself exiting.
   magnified to 1024x684, hardcoded for the real 1024x768 target panel) —
   unlike the launcher's own rendering or LisaEm/Basilisk II's fullscreen
   modes, it doesn't adapt to whatever display is actually connected.
-- An "exit to the full Raspberry Pi Desktop" picker entry was discussed —
-  the Pi has a full desktop available (`lightdm` + labwc/rpd-labwc,
-  currently disabled in favor of the kiosk) but wiring it in needs the
-  watchdog taught to recognize "desktop mode" (so it doesn't immediately
-  fight the switch) and a polkit rule extension to start/stop the
-  relevant systemd units without a password prompt — not yet implemented.
+- **Implemented, not yet hardware-verified:** `Q` switches to the full
+  Raspberry Pi Desktop (`lightdm` + labwc/rpd-labwc) and a "Back to Lisa
+  Kiosk" desktop icon returns — see `SETUP.md` §7's "Q: switching to the
+  full desktop and back". Built on `launcher.service`'s
+  `Conflicts=lightdm.service` (starting either auto-stops the other) plus
+  a polkit rule scoped to exactly `launcher.service`/
+  `launcher-watchdog.timer`/`lightdm.service`. What's unverified: whether
+  `lightdm` actually claims the VT cleanly right after `launcher.service`
+  releases it - test this on real hardware before relying on it.

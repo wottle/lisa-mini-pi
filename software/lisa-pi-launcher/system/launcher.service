@@ -1,7 +1,12 @@
 [Unit]
 Description=Lisa-style boot launcher (kiosk)
 After=systemd-user-sessions.service getty@tty1.service plymouth-quit.service
-Conflicts=getty@tty1.service
+# Conflicts is bidirectional: starting either of these auto-stops the
+# other. That's what makes Q ("quit to desktop", see launcher.py) and
+# the desktop's "back to kiosk" icon both work with nothing more than a
+# single `systemctl start` of whichever session should now own the
+# display - no separate "stop the other one first" step needed.
+Conflicts=getty@tty1.service lightdm.service
 
 [Service]
 Type=simple

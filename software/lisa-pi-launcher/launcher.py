@@ -177,6 +177,16 @@ def main() -> None:
                 elif event.key == pygame.K_r:
                     subprocess.run(["systemctl", "reboot"])
                 elif event.key == pygame.K_q:
+                    # Suppress the watchdog first - it doesn't know about
+                    # the desktop session and would otherwise see no
+                    # launcher/emulator process running and restart the
+                    # kiosk out from under it within 30s. Starting
+                    # lightdm.service is what actually switches sessions
+                    # (see launcher.service's Conflicts=lightdm.service -
+                    # starting it auto-stops us, which is why this is the
+                    # last action taken here).
+                    subprocess.run(["systemctl", "stop", "launcher-watchdog.timer"])
+                    subprocess.run(["systemctl", "start", "lightdm.service"])
                     running = False
             elif event.type == pygame.MOUSEMOTION and diag.done:
                 # Hover selects, mirroring the arrow keys - so someone
