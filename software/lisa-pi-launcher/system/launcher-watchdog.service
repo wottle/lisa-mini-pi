@@ -1,0 +1,7 @@
+[Unit]
+Description=Check the Lisa boot launcher kiosk is actually running, restart if not
+After=launcher.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh /home/wottle/lisa-pi-launcher/system/launcher-watchdog.sh

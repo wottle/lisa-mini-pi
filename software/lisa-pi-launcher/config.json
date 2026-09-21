@@ -1,0 +1,58 @@
+{
+  "systems": [
+    {
+      "id": "lisa",
+      "name": "LISA",
+      "subtitle": "OFFICE SYSTEM 3.1",
+      "icon": "icons/lisa.png",
+      "command": [
+        "/home/wottle/lisa-run-with-led.sh",
+        "-p",
+        "-d",
+        "-F",
+        "-q"
+      ]
+    },
+    {
+      "id": "macintosh",
+      "name": "MACINTOSH",
+      "subtitle": "SYSTEM 7.5.3",
+      "icon": "icons/macintosh.png",
+      "command": [
+        "/usr/bin/BasiliskII"
+      ]
+    },
+    {
+      "id": "macintosh6",
+      "name": "MACINTOSH",
+      "subtitle": "SYSTEM 6.0.8",
+      "icon": "icons/macintosh.png",
+      "command": [
+        "/home/wottle/minivmac-final/minivmac",
+        "-r",
+        "/home/wottle/minivmac-final/MacII.ROM",
+        "/home/wottle/minivmac-final/System6.image"
+      ]
+    },
+    {
+      "id": "next",
+      "name": "NEXT",
+      "subtitle": "NEXTSTEP 3.3",
+      "icon": "icons/next.png",
+      "command": [
+        "/bin/sleep",
+        "3"
+      ]
+    },
+    {
+      "id": "apple2",
+      "name": "APPLE II",
+      "subtitle": "APPLE DOS 3.3",
+      "icon": "icons/apple2.png",
+      "command": [
+        "/bin/sleep",
+        "3"
+      ]
+    }
+  ]
+}

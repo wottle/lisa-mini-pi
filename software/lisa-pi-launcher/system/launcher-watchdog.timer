@@ -1,0 +1,9 @@
+[Unit]
+Description=Periodically check the Lisa boot launcher kiosk is running
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=30s
+
+[Install]
+WantedBy=timers.target

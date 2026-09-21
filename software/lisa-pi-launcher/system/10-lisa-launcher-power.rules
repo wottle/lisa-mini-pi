@@ -1,0 +1,26 @@
+// Allow user "wottle" to power off/reboot without authentication, from the
+// Lisa boot launcher kiosk, regardless of session state.
+//
+// This replaces an earlier .pkla (pklocalauthority) rule. .pkla files are
+// the legacy polkit local-authority format, only honored on current polkit
+// via a separate polkitd-pkla compatibility package that isn't guaranteed
+// to be installed (e.g. Raspberry Pi OS Trixie's stock polkit). Rules
+// files (this format) are the modern, always-supported mechanism.
+//
+// It also covers the "*-multiple-sessions" action ids: logind checks those
+// instead of the plain power-off/reboot ids whenever more than one session
+// exists - e.g. the SSH session this project is routinely administered
+// from alongside the kiosk's own (possibly session-less, since
+// launcher.service runs without PAMName=) X session. Without these, S/R
+// would silently fail to authorize whenever someone's also SSH'd in.
+polkit.addRule(function(action, subject) {
+    var actions = [
+        "org.freedesktop.login1.power-off",
+        "org.freedesktop.login1.power-off-multiple-sessions",
+        "org.freedesktop.login1.reboot",
+        "org.freedesktop.login1.reboot-multiple-sessions",
+    ];
+    if (actions.indexOf(action.id) !== -1 && subject.user === "wottle") {
+        return polkit.Result.YES;
+    }
+});
