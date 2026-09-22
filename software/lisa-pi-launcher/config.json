@@ -8,18 +8,18 @@
       "command": ["/home/wottle/lisa-mini-pi/software/lisa-pi-launcher/lisa-run-with-led.sh", "-k", "-d"]
     },
     {
+      "id": "macintosh6",
+      "name": "MAC OS 6",
+      "subtitle": "SYSTEM 6.0.8",
+      "icon": "icons/macintosh6.png",
+      "command": ["/home/wottle/minivmac-final/minivmac", "-r", "/home/wottle/minivmac-final/MacII.ROM", "/home/wottle/minivmac-final/System6.image"]
+    },
+    {
       "id": "macintosh",
-      "name": "MACINTOSH",
+      "name": "MAC OS 7",
       "subtitle": "SYSTEM 7.5.3",
       "icon": "icons/macintosh.png",
       "command": ["/usr/bin/BasiliskII"]
-    },
-    {
-      "id": "macintosh6",
-      "name": "MACINTOSH",
-      "subtitle": "SYSTEM 6.0.8",
-      "icon": "icons/macintosh.png",
-      "command": ["/home/wottle/minivmac-final/minivmac", "-r", "/home/wottle/minivmac-final/MacII.ROM", "/home/wottle/minivmac-final/System6.image"]
     },
     {
       "id": "next",

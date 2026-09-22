@@ -185,13 +185,25 @@ def draw_item(surface: pygame.Surface, center_x: int, top_y: int, item: ItemVisu
         surface.blit(status_icon_to_draw, status_rect)
 
 
+# Keyed by id(icon): icon surfaces are loaded once at startup and never
+# mutated, so each one's inverted counterpart only ever needs computing
+# once rather than on every frame it's selected.
+_inverted_icon_cache: dict[int, pygame.Surface] = {}
+
+
 def _invert_icon(icon: pygame.Surface) -> pygame.Surface:
-    inverted = icon.copy()
-    width, height = inverted.get_size()
-    for y in range(height):
-        for x in range(width):
-            r, g, b, *_ = inverted.get_at((x, y))
-            inverted.set_at((x, y), (255 - r, 255 - g, 255 - b))
+    cached = _inverted_icon_cache.get(id(icon))
+    if cached is not None:
+        return cached
+    # A per-pixel get_at/set_at loop here was the actual cause of the
+    # picker feeling sluggish once icons grew to 128px (16384 pixels,
+    # decoded/re-encoded one at a time in interpreted Python, every frame
+    # the item was selected). BLEND_RGB_SUB does the same 255-minus-value
+    # inversion as a single hardware-accelerated blit instead.
+    inverted = pygame.Surface(icon.get_size())
+    inverted.fill(_WHITE)
+    inverted.blit(icon, (0, 0), special_flags=pygame.BLEND_RGB_SUB)
+    _inverted_icon_cache[id(icon)] = inverted
     return inverted
 
 

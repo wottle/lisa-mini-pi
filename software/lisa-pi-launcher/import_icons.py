@@ -22,6 +22,7 @@ import theme
 _SOURCE_TO_ICON = {
     "lisa.png": "lisa.png",
     "macos7.png": "macintosh.png",
+    "macos6.png": "macintosh6.png",
     "NeXT.png": "next.png",
     "appleii.png": "apple2.png",
 }
