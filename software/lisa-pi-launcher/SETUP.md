@@ -351,3 +351,20 @@ broken this in the past.
   physical unit each of your own local notes refers to.
 - This file and `../../docs/software-setup.md` overlap and haven't been
   reconciled into one - see the note at the top of this file.
+- **The desktop→kiosk switch (the "Emulator Launcher" icon / `Q`'s
+  reverse direction) has a workaround, not a real fix, for a kernel/GPU
+  driver bug.** On real hardware (Pi 4 + the project's 1024x768 HDMI
+  panel), tearing down the desktop's Xorg session and starting the
+  kiosk's back-to-back in one systemd transaction reliably triggers a
+  kernel `WARNING` in `drivers/gpu/drm/vc4/vc4_hvs.c`
+  (`__vc4_hvs_stop_channel`, hit via the outgoing Xorg's `FBIOBLANK`
+  ioctl on exit), which leaves the display flickering blue/black until
+  the new X session gives up and crash-loops. `system/back-to-kiosk.sh`
+  now explicitly stops `lightdm.service` and sleeps 2 seconds before
+  starting `launcher.service`, instead of relying on
+  `Conflicts=lightdm.service` to do both atomically - this gives the
+  outgoing Xorg's teardown time to settle first. No kernel update fixing
+  this was available as of 2026-09-22 (`apt full-upgrade` picked up
+  newer firmware/desktop packages but not a new kernel). Revisit once
+  one is; the delay is a mitigation for a real upstream bug, not
+  something fixable from this repo alone.
