@@ -175,3 +175,36 @@ TODO: document install/configuration steps. Currently installed at
 TODO: document install/configuration steps. Currently installed at
 `~/minivmac-final/`, launched by the launcher with a specific ROM and
 System 6 disk image — see `config.json`.
+
+## 6. Custom boot splash
+
+Raspberry Pi OS's boot splash (the image shown between the rainbow-square
+firmware screen and the kiosk actually starting) is Plymouth, using the
+stock `pix` theme. That theme's script
+(`/usr/share/plymouth/themes/pix/pix.script`) auto-scales and centers
+whatever `splash.png` it finds in its own theme directory to fit the
+actual connected display — so `software/boot-splash/splash.png` doesn't
+need to exactly match any particular panel's resolution, just its
+approximate aspect ratio (it's 1448x1086, 4:3, matching the 1024x768
+target panel).
+
+```
+sudo software/boot-splash/install.sh
+sudo reboot
+```
+
+The script backs up the stock image to
+`/usr/share/plymouth/themes/pix/splash.png.orig` (once — it won't
+overwrite an existing backup) before installing the custom one, and runs
+`update-initramfs -u` afterward, which is required on current Raspberry
+Pi OS (`auto_initramfs=1` in `/boot/firmware/config.txt`) — Plymouth
+reads its theme files out of the initramfs image at early boot, not
+directly off the live root filesystem, so a plain file copy alone
+doesn't take effect until the initramfs is rebuilt.
+
+To revert to the stock Raspberry Pi splash:
+
+```
+sudo cp /usr/share/plymouth/themes/pix/splash.png.orig /usr/share/plymouth/themes/pix/splash.png
+sudo update-initramfs -u
+```
