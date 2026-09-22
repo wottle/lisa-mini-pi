@@ -208,3 +208,20 @@ To revert to the stock Raspberry Pi splash:
 sudo cp /usr/share/plymouth/themes/pix/splash.png.orig /usr/share/plymouth/themes/pix/splash.png
 sudo update-initramfs -u
 ```
+
+### Disabling the rainbow firmware splash
+
+Before Plymouth (or even Linux) starts, the Pi's GPU firmware briefly
+shows a rainbow-square diagnostic test pattern. That screen is rendered
+directly by the firmware, not from an image file, so there's no supported
+way to replace it with custom art — only to skip it. Add this to
+`/boot/firmware/config.txt`, in the global section above the
+`[cm4]`/`[cm5]`/`[pi5]` platform-specific sections (e.g. right after
+`arm_boost=1`):
+
+```
+disable_splash=1
+```
+
+With it set, boot goes straight from a brief black screen into the
+Plymouth splash above instead of showing the rainbow test pattern first.
