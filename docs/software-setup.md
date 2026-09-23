@@ -251,7 +251,68 @@ deleting `~/.config/previous/` and redoing the one-time setup is the
 known trigger to watch for, not something to chase as a launcher bug
 first.
 
-## 7. Custom boot splash
+## 7. LinApple (Apple II / II+ / //e)
+
+Installed from a pre-built `.deb` (github.com/linappleii/linapple
+releases, an actively-maintained project - not the older abandoned
+"linapple-pie" fork, whose changes have been merged upstream here):
+
+```
+curl -LO https://github.com/linappleii/linapple/releases/download/v3.0-beta-3/linapple-v3.0-beta-3-linux-arm64.deb
+sudo apt-get install -y ./linapple-v3.0-beta-3-linux-arm64.deb
+```
+
+**Bundles its own Apple II ROMs** (built in, not separate files) - no
+ROM sourcing needed at all, unlike every other emulator in this project.
+
+### Two packaging gotchas on arm64/trixie (both confirmed 2026-09-23)
+
+This is a beta release and its arm64 `.deb` has real packaging bugs on
+current Debian trixie - both needed a manual fix after `apt-get install`
+otherwise succeeded:
+
+1. **`libSDL3_image.so.0` isn't even declared as a dependency**, despite
+   the binary needing it. Install it separately:
+   ```
+   sudo apt-get install -y libsdl3-image0
+   ```
+2. **The binary is linked against `libzip.so.4`, which doesn't exist on
+   trixie** (renamed to `libzip.so.5` - the `.deb`'s declared
+   `libzip4 | libzip-dev` dependency lets `apt` install `libzip-dev`
+   instead, which satisfies the *packaging* dependency check but not the
+   actual *runtime* linker, since `libzip-dev` doesn't ship the old
+   soname either). A compatibility symlink fixes it - libzip's C API
+   (`zip_open`/`zip_fopen`/`zip_fread`/etc.) has stayed stable across its
+   soname bumps for years, so this is low-risk despite looking hacky:
+   ```
+   sudo ln -sf /usr/lib/aarch64-linux-gnu/libzip.so.5.5 /usr/lib/aarch64-linux-gnu/libzip.so.4
+   sudo ldconfig
+   ```
+
+Verify both are fixed with `ldd /usr/bin/linapple | grep "not found"` -
+it should print nothing.
+
+### Total Replay (a ready-to-boot game library)
+
+[Total Replay](https://archive.org/details/TotalReplay) is a single
+ProDOS hard-disk image (`.hdv`) bundling hundreds of native Apple II
+games behind a menu - much more convenient for a kiosk than sourcing
+individual floppy images:
+
+```
+curl -L -o ~/TotalReplay_v6.1.hdv "https://archive.org/download/TotalReplay/Total%20Replay%20v6.1.hdv"
+```
+
+`config.json`'s `apple2` entry launches straight into it:
+```
+["/usr/bin/linapple", "--hd1", "/home/wottle/TotalReplay_v6.1.hdv", "--autoboot", "--fullscreen"]
+```
+
+`linapple --help` lists the full flag set if you want a different boot
+disk/hard disk instead - `-1`/`-2` for floppy drives 1/2, `--hd1`/`--hd2`
+for hard disks (Slot 7), `-a`/`--autoboot`, `-f`/`--fullscreen`.
+
+## 8. Custom boot splash
 
 Raspberry Pi OS's boot splash (the image shown between the rainbow-square
 firmware screen and the kiosk actually starting) is Plymouth, using the

@@ -6,7 +6,7 @@
 # - restart the kiosk service to recover.
 #
 # Update this list if config.json gains emulators beyond LisaEm/Basilisk
-# II/Mini vMac/Previous.
+# II/Mini vMac/Previous/LinApple.
 if pgrep -f "python3 launcher\.py$" > /dev/null 2>&1; then
     exit 0
 fi
@@ -20,6 +20,9 @@ if pgrep -x minivmac > /dev/null 2>&1; then
     exit 0
 fi
 if pgrep -x previous > /dev/null 2>&1; then
+    exit 0
+fi
+if pgrep -x linapple > /dev/null 2>&1; then
     exit 0
 fi
 
