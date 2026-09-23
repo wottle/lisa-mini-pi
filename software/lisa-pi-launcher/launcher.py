@@ -240,6 +240,13 @@ def _launch_selected(
     # itself instead of leaving it pinned on this (now backgrounded)
     # window - see release_focus_to_pointer_root()'s docstring.
     x11focus.release_focus_to_pointer_root()
+    # Basilisk II and Mini vMac both take over the cursor themselves once
+    # running, so the launcher's big custom pointer naturally disappears;
+    # LisaEm never touches cursor state at all, so without this it just
+    # keeps showing our last-defined cursor image on top of LisaEm's own
+    # screen for the whole session. Hide it explicitly instead of
+    # depending on each emulator's own behavior.
+    pygame.mouse.set_visible(False)
     _diag_log(f"pre-launch grab={pygame.event.get_grab()} active={pygame.display.get_active()}")
 
     launch_failed = False
@@ -264,6 +271,7 @@ def _launch_selected(
         # Reclaim input focus now that the emulator's window is gone (see
         # the comment in main() - X11 doesn't reliably hand it back on
         # its own with no window manager in this session).
+        pygame.mouse.set_visible(True)
         pygame.event.set_grab(True)
         x11focus.reclaim_focus(real_screen)
         _diag_log(f"grab-after-reclaim={pygame.event.get_grab()} active={pygame.display.get_active()}")
