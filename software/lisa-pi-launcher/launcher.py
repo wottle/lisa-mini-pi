@@ -230,6 +230,11 @@ def _launch_selected(
     # keyboard/mouse input - holding it while a second window is meant to
     # be focused would fight the emulator for input.
     pygame.event.set_grab(False)
+    # pygame.event.set_grab(False) alone releases SDL's own bookkeeping
+    # but was observed to leave the actual X11 pointer grab in place when
+    # launching via a mouse click (not Enter) - see x11focus.py's
+    # release_pointer_grab() docstring for the symptom this fixes.
+    x11focus.release_pointer_grab()
     _diag_log(f"pre-launch grab={pygame.event.get_grab()} active={pygame.display.get_active()}")
 
     launch_failed = False
