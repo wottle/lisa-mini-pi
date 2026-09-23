@@ -101,10 +101,21 @@ def _check_config_json_paths(config_path: str) -> list[str]:
 
 
 def _check_paths(paths: list[str], label: str) -> list[str]:
+    # os.path.exists() swallows PermissionError (along with every other
+    # OSError) and just reports False, which would be a false FAIL for
+    # something like /etc/polkit-1/rules.d/ that isn't world-readable - a
+    # normal user genuinely can't tell missing from present there. Call
+    # os.stat() directly so that case can be reported honestly instead.
     results = []
     for path in paths:
-        status = "OK  " if os.path.exists(path) else "FAIL"
-        results.append(f"[{status}] {label} {path}")
+        try:
+            os.stat(path)
+        except FileNotFoundError:
+            results.append(f"[FAIL] {label} {path}")
+        except PermissionError:
+            results.append(f"[WARN] {label} {path}: cannot verify (permission denied)")
+        else:
+            results.append(f"[OK  ] {label} {path}")
     return results
 
 

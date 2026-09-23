@@ -87,6 +87,20 @@ def test_check_paths_reports_ok_and_fail(tmp_path):
     assert results[1].startswith("[FAIL]")
 
 
+def test_check_paths_reports_warn_not_fail_on_permission_denied(tmp_path):
+    locked_dir = tmp_path / "locked"
+    locked_dir.mkdir(mode=0o000)
+    target = locked_dir / "some-file"
+
+    try:
+        results = check_deps._check_paths([str(target)], "thing")
+    finally:
+        locked_dir.chmod(0o755)
+
+    assert results[0].startswith("[WARN]")
+    assert "permission denied" in results[0]
+
+
 def test_main_always_returns_zero_even_with_failures(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     config_path = tmp_path / "config.json"
