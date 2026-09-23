@@ -207,22 +207,49 @@ You'll need a NeXTSTEP disk image - not redistributed here. One-time
 setup, at the Pi, with a keyboard attached:
 
 1. Launch Previous from the picker (or run `/usr/bin/previous` directly
-   for this first-run setup).
-2. Press **F12** to open the settings GUI.
-3. **Machine Type**: `NeXTstation` or `NeXTstation color` (color gives
-   less emulated RAM and no Turbo support).
-4. **Boot Options**: select `SCSI disk`, check `Verbose test mode`.
-5. **SCSI Disks**: set your NeXTSTEP disk image as `SCSI Disk 0`.
-6. Click OK to boot.
+   for this first-run setup). The settings GUI opens automatically on
+   first launch.
+2. Uncheck **Show at startup** - see the gotcha below, this alone isn't
+   enough.
+3. **System settings → Machine Type**: `NeXTstation` (not Turbo, not
+   color) gave the best performance on a Pi 4.
+4. **Boot Options**: set Boot device to `SCSI disk`; uncheck both
+   `SCSI tests` and `Verbose test mode`.
+5. **SCSI Disks**: add your NeXTSTEP disk image as `SCSI Disk 0`.
+6. Click **Save config** (not just OK) to persist these to
+   `~/.config/previous/previous.cfg`.
 7. NeXTSTEP will pause waiting for a network config server (Ethernet
    isn't emulated) - press **Ctrl-C** to continue booting past that.
 8. To shut down cleanly from inside NeXTSTEP, press **F10** (not a
    guest-OS shutdown menu item).
 
-After this one-time setup, `previous.cfg` remembers the machine
-type/ROM/disk path, so later launches from the picker boot straight in
-without needing F12 again - only the disk path changes if you move the
-`.dd`/image file.
+**Gotcha confirmed on real hardware (2026-09-23):** unchecking "Show at
+startup" in the GUI and clicking Save config does *not* reliably persist
+that one setting - the config dialog kept reopening on every launch
+regardless. Previous has no command-line flag to suppress it either (the
+man page is explicit: no CLI flags at all). Fix it directly in the saved
+config file instead:
+
+```
+sed -i 's/^bShowConfigDialogAtStartup = TRUE/bShowConfigDialogAtStartup = FALSE/' ~/.config/previous/previous.cfg
+```
+
+After that, `previous.cfg` remembers everything (machine type, boot
+options, disk path) and later launches from the picker boot straight
+into NeXTSTEP with no dialog and no F12 needed - only the disk path
+changes if you move the `.dd`/image file.
+
+A separate, unexplained wrinkle also showed up during initial setup on a
+Pi 4: launching `/usr/bin/previous` directly from the picker (via
+`subprocess.run`, no wrapper) reliably exited after almost exactly 3
+seconds *before* `previous.cfg` existed at all, with no crash/error in
+its output - reproducible standalone via SSH too regardless of
+`start_new_session`/env vars, but never once it had a saved config to
+load. Once `previous.cfg` exists (from the one-time setup above),
+launching it directly is stable. If this ever recurs on a fresh Pi,
+deleting `~/.config/previous/` and redoing the one-time setup is the
+known trigger to watch for, not something to chase as a launcher bug
+first.
 
 ## 7. Custom boot splash
 
