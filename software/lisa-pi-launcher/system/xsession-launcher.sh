@@ -18,6 +18,13 @@ openbox &
 
 cd /home/wottle/lisa-mini-pi/software/lisa-pi-launcher || exit 1
 
+# Non-blocking startup dependency check: logs missing binaries/ROM-disk
+# assets/systemd units to ~/lisa-mini-pi-dependency-check.log every time
+# the kiosk starts, so a setup problem on a new/reprovisioned Pi shows up
+# there first instead of as a mysterious runtime failure later. See
+# check_deps.py's own docstring for what it checks.
+python3 check_deps.py >/dev/null 2>&1 &
+
 # Persistent GPIO power-button watcher: runs for the whole X session, not
 # just while LisaEm is running - see lisa-power-button-watcher.sh for what
 # it actually does on each button press. Logs to its own file since it
