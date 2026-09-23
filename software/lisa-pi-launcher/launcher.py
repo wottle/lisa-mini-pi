@@ -235,6 +235,11 @@ def _launch_selected(
     # launching via a mouse click (not Enter) - see x11focus.py's
     # release_pointer_grab() docstring for the symptom this fixes.
     x11focus.release_pointer_grab()
+    # The actual fix for LisaEm's mouse freezing when launched by click:
+    # let the emulator's about-to-map window pick up real X input focus
+    # itself instead of leaving it pinned on this (now backgrounded)
+    # window - see release_focus_to_pointer_root()'s docstring.
+    x11focus.release_focus_to_pointer_root()
     _diag_log(f"pre-launch grab={pygame.event.get_grab()} active={pygame.display.get_active()}")
 
     launch_failed = False
