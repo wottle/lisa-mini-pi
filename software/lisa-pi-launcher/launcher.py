@@ -17,6 +17,20 @@ import time
 # the emulator exits.
 os.environ.setdefault("SDL_VIDEO_MINIMIZE_ON_FOCUS_LOSS", "0")
 
+# SDL2 auto-captures the mouse on a button press by default (so a
+# click-drag that leaves the window still tracks correctly), releasing
+# that capture only once SDL itself processes the matching button-release
+# event. Selecting a system with a mouse click goes straight from that
+# MOUSEBUTTONDOWN into a blocking subprocess.run() for the whole emulator
+# session - SDL never gets to pump the button-release, so its capture
+# grab was suspected of outliving the click and silently swallowing all
+# pointer events meant for the emulator's window (window-manager focus
+# and an X pointer grab are independent - LisaEm correctly had real focus
+# the whole time per an xdotool diagnostic, yet still never received a
+# single mouse event). Disabling auto-capture removes that grab from the
+# picture entirely rather than trying to race its release.
+os.environ.setdefault("SDL_MOUSE_AUTO_CAPTURE", "0")
+
 import pygame
 
 _DIAG_EVENT_NAMES = {
