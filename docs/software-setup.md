@@ -176,7 +176,55 @@ TODO: document install/configuration steps. Currently installed at
 `~/minivmac-final/`, launched by the launcher with a specific ROM and
 System 6 disk image — see `config.json`.
 
-## 6. Custom boot splash
+## 6. Previous (NeXT Computer, NeXTSTEP 3.3)
+
+Installed from a pre-built `.deb`, not built from source - the project's
+GitHub/SourceForge source build needs SDL3 built from source on top of
+CMake, and a pre-built package already exists for arm64:
+
+```
+curl -LO http://previous.nextcommunity.net/release/previous_4.4-0wmlive1_arm64.deb
+sudo apt-get install -y ./previous_4.4-0wmlive1_arm64.deb
+```
+
+This pulls in `libsdl3-0` and the rest of its dependencies from Debian's
+own repos automatically - no manual SDL3 build needed. The package also
+**bundles NeXT ROM images** (`/usr/share/previous/Rev_3.3_v74.BIN`,
+etc.) - no separate ROM sourcing required, unlike LisaEm/Basilisk
+II/Mini vMac.
+
+Previous has **no command-line flags at all** - `previous.1`'s man page
+says so explicitly. Everything (machine type, ROM selection, boot
+options, disk images, fullscreen) is configured interactively via an
+in-app settings GUI (press **F12** while it's running), saved to
+`~/.config/previous/previous.cfg`, and reloaded automatically on every
+subsequent launch - so `config.json`'s `next` entry is just
+`["/usr/bin/previous"]` with nothing else, and the one-time interactive
+setup below has to happen at the physical Pi (keyboard required for a
+couple of steps).
+
+You'll need a NeXTSTEP disk image - not redistributed here. One-time
+setup, at the Pi, with a keyboard attached:
+
+1. Launch Previous from the picker (or run `/usr/bin/previous` directly
+   for this first-run setup).
+2. Press **F12** to open the settings GUI.
+3. **Machine Type**: `NeXTstation` or `NeXTstation color` (color gives
+   less emulated RAM and no Turbo support).
+4. **Boot Options**: select `SCSI disk`, check `Verbose test mode`.
+5. **SCSI Disks**: set your NeXTSTEP disk image as `SCSI Disk 0`.
+6. Click OK to boot.
+7. NeXTSTEP will pause waiting for a network config server (Ethernet
+   isn't emulated) - press **Ctrl-C** to continue booting past that.
+8. To shut down cleanly from inside NeXTSTEP, press **F10** (not a
+   guest-OS shutdown menu item).
+
+After this one-time setup, `previous.cfg` remembers the machine
+type/ROM/disk path, so later launches from the picker boot straight in
+without needing F12 again - only the disk path changes if you move the
+`.dd`/image file.
+
+## 7. Custom boot splash
 
 Raspberry Pi OS's boot splash (the image shown between the rainbow-square
 firmware screen and the kiosk actually starting) is Plymouth, using the
