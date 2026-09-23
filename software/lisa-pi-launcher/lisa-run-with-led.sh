@@ -26,24 +26,5 @@ trap turn_off_led EXIT
 log "script start, args: $*"
 pinctrl set "$LED_PIN" op dh
 log "LED on - starting LisaEm ($LISAEM_BIN)"
-
-# Temporary diagnostic: polls which window actually has X input focus
-# while LisaEm runs, for tracking down the mouse-click-launch focus bug
-# (see x11focus.py). Logs to a separate file so it's easy to strip back
-# out once that's resolved.
-FOCUS_LOG="$HOME/lisa-focus-diag.log"
-(
-  for _ in $(seq 1 30); do
-    sleep 1
-    {
-      echo "--- $(date '+%H:%M:%S.%N') ---"
-      DISPLAY=:0 xdotool getactivewindow getwindowname 2>&1
-      DISPLAY=:0 xdotool getactivewindow getwindowpid 2>&1
-    } >> "$FOCUS_LOG" 2>&1
-  done
-) &
-FOCUS_DIAG_PID=$!
-
 GDK_BACKEND=x11 "$LISAEM_BIN" "$@"
 log "LisaEm exited"
-kill "$FOCUS_DIAG_PID" 2>/dev/null || true

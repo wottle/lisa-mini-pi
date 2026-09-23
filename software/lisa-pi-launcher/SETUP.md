@@ -276,6 +276,24 @@ auto-stops the other, so switching sessions is just one `systemctl start`
 each way — no manual "stop the other one first" step, and no risk of both
 fighting over the same VT at once.
 
+**Only install the "Emulator Launcher" desktop icon/menu entry below on a
+Pi 3B, and only if you actually want the round trip back into the kiosk
+from the desktop.** On a Pi 4 + the project's 1024x768 HDMI panel, that
+specific transition (tearing down the desktop's live Xorg session and
+starting the kiosk's back-to-back) reliably triggers a kernel `WARNING`
+in `drivers/gpu/drm/vc4/vc4_hvs.c` (`__vc4_hvs_stop_channel`) that leaves
+the display flickering blue/black - confirmed via a direct `dmesg`
+reproduction, and unfixed by both a delay-based workaround and
+`max_framebuffers=1`; no kernel update addressing it was available as of
+2026-09-22. The same transition was directly confirmed clean (zero new
+kernel log lines) on a Pi 3B. `Q` (kiosk → desktop) itself isn't affected
+either way and is safe to set up on any Pi - just skip the icon below on
+a Pi 4 and use a plain `sudo reboot` from the desktop to get back to the
+kiosk instead. (Also worth knowing before bothering with this on a
+Pi 3B at all: LisaEm's performance there is poor enough - see the
+project's CLAUDE.md hardware notes - that a Pi 3B usually isn't the
+recommended target regardless.)
+
 Install the "Emulator Launcher" desktop entry - as both a desktop icon and an
 Applications-menu entry, since rpd-labwc's desktop-icon rendering has
 been inconsistent:
@@ -307,9 +325,11 @@ outside the repo's own tree.)
 
 **Confirmed working on real hardware** (2026-09-21, Pi 3B): pressing `Q`
 at the picker switches cleanly to the full desktop, and the "Emulator
-Launcher" launcher switches back. If a future Pi's `lightdm` doesn't
-claim the VT cleanly once `launcher.service` releases it, check
-`journalctl -u lightdm.service` for what went wrong.
+Launcher" icon switches back - on a Pi 3B specifically, see the warning
+above for why a Pi 4 shouldn't have the icon installed at all
+(2026-09-22). If a future Pi's `lightdm` doesn't claim the VT cleanly
+once `launcher.service` releases it, check `journalctl -u lightdm.service`
+for what went wrong.
 
 ## 8. Verifying the round trip
 
@@ -351,20 +371,22 @@ broken this in the past.
   physical unit each of your own local notes refers to.
 - This file and `../../docs/software-setup.md` overlap and haven't been
   reconciled into one - see the note at the top of this file.
-- **The desktop→kiosk switch (the "Emulator Launcher" icon / `Q`'s
-  reverse direction) has a workaround, not a real fix, for a kernel/GPU
-  driver bug.** On real hardware (Pi 4 + the project's 1024x768 HDMI
+- **The desktop→kiosk switch (the "Emulator Launcher" icon) is unfixed on
+  Pi 4 and the icon should not be installed there - see the warning in
+  §7 above.** On real hardware (Pi 4 + the project's 1024x768 HDMI
   panel), tearing down the desktop's Xorg session and starting the
-  kiosk's back-to-back in one systemd transaction reliably triggers a
-  kernel `WARNING` in `drivers/gpu/drm/vc4/vc4_hvs.c`
-  (`__vc4_hvs_stop_channel`, hit via the outgoing Xorg's `FBIOBLANK`
-  ioctl on exit), which leaves the display flickering blue/black until
-  the new X session gives up and crash-loops. `system/back-to-kiosk.sh`
-  now explicitly stops `lightdm.service` and sleeps 2 seconds before
-  starting `launcher.service`, instead of relying on
-  `Conflicts=lightdm.service` to do both atomically - this gives the
-  outgoing Xorg's teardown time to settle first. No kernel update fixing
-  this was available as of 2026-09-22 (`apt full-upgrade` picked up
-  newer firmware/desktop packages but not a new kernel). Revisit once
-  one is; the delay is a mitigation for a real upstream bug, not
-  something fixable from this repo alone.
+  kiosk's back-to-back reliably triggers a kernel `WARNING` in
+  `drivers/gpu/drm/vc4/vc4_hvs.c` (`__vc4_hvs_stop_channel`, hit via the
+  outgoing Xorg's `FBIOBLANK` ioctl on exit), which leaves the display
+  flickering blue/black until the new X session gives up and
+  crash-loops. Confirmed directly reproducible via `dmesg` on Pi 4 and
+  directly confirmed NOT reproducible the same way on Pi 3B - this is
+  specific to the Pi 4 hardware/kernel combination, not the launcher
+  code. Two mitigations were tried and both failed to fix it: a
+  stop-then-sleep-then-start delay in `system/back-to-kiosk.sh` (kept -
+  harmless, but doesn't help), and `max_framebuffers=1` in config.txt (to
+  rule out Pi 4's always-enumerated-but-disconnected second HDMI output's
+  HVS channel as the cause - it wasn't). No kernel update fixing this was
+  available as of 2026-09-22. `Q` (kiosk → desktop) itself is unaffected
+  and still works fine on any Pi; a plain reboot is the way back into the
+  kiosk on a Pi 4 instead of the icon.
