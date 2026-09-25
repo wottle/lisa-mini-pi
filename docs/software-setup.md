@@ -2,10 +2,17 @@
 
 End-to-end setup for the software side of the Lisa Mini Pi: the patched
 LisaEm build, the kiosk launcher, the physical power-button/LED wiring, and
-the boot-time systemd configuration that ties it all together.
+the boot-time systemd configuration that ties it all together. Five
+emulators are covered: LisaEm (§1), Basilisk II (§4), Mini vMac (§5),
+Previous/NeXT (§6), and LinApple/Apple II (§7).
 
-Basilisk II and Mini vMac sections are stubs — installation steps for those
-still need to be documented.
+**Pi 3B note (as of 2026-09-25):** only LisaEm, Basilisk II, and Mini
+vMac are installed on the project's Pi 3B - it doesn't have the
+power/performance headroom for Previous and LinApple as well. `config.json`
+is shared/identical across both Pis (every path in it is now uniform), so
+this is purely about which `.deb`s got installed where, not a config
+difference. `check_deps.py` will correctly flag `next`/`apple2` as
+missing on a Pi 3B set up this way - that's expected, not a bug to fix.
 
 ## 1. Apple Lisa emulation: building the patched LisaEm
 
@@ -208,15 +215,30 @@ to administer the Pi) is also active.
 
 ## 4. Basilisk II (classic Mac OS, System 7.5.3)
 
-TODO: document install/configuration steps. Currently installed at
-`/usr/bin/BasiliskII`, launched by the launcher with no extra flags — see
-`config.json`.
+Full install/build steps are in
+`software/lisa-pi-launcher/SETUP.md` §4, not duplicated here. Installed
+at `/usr/bin/BasiliskII` via `apt install basilisk2`, launched by the
+launcher with no extra flags — see `config.json`.
+
+**GPIO power button**: not wired up (§2 above) - the Debian-packaged
+build doesn't respond to a clean window-close/ADB-power-key request the
+way upstream Basilisk II's own source does (confirmed on real hardware,
+2026-09-24 - see §2's watcher script notes). Shut it down from inside
+the guest instead.
 
 ## 5. Mini vMac (classic Mac OS, System 6.0.8)
 
-TODO: document install/configuration steps. Currently installed at
-`~/minivmac-final/`, launched by the launcher with a specific ROM and
-System 6 disk image — see `config.json`.
+Full install/build steps (including the `-cpu x64`/`-ndp 1` flags and
+why they're required) are in `software/lisa-pi-launcher/SETUP.md` §5,
+not duplicated here. Installed at `~/minivmac-final/`, launched by the
+launcher with a specific ROM and System 6 disk image — see
+`config.json`.
+
+**GPIO power button**: not wired up (§2 above) - this fork has no safe
+host-triggerable shutdown at all (no signal handler; buffered disk
+writes only flush on a clean exit; its own internal force-quit path is
+documented by the emulator itself as a disk-corruption risk). Shut it
+down from inside the guest instead.
 
 ## 6. Previous (NeXT Computer, NeXTSTEP 3.3)
 

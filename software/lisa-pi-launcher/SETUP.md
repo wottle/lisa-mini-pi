@@ -7,6 +7,13 @@ be wrong, incomplete, or unnecessary, fix it in the same change that
 changes the actual setup. Don't let this drift from what a fresh Pi
 actually needs.
 
+**This file does not cover Previous (NeXT) or LinApple (Apple II) at
+all** - those were added later and are documented only in
+`../../docs/software-setup.md` §6-7, including their real
+packaging/dependency gotchas on Debian trixie. If you're setting up a
+system with all five emulators, read that file, not this one, for the
+last two.
+
 This directory (`software/lisa-pi-launcher/`) lives inside the
 [`lisa-mini-pi`](../../README.md) umbrella repo. This file covers the
 launcher app itself in detail; `../../docs/software-setup.md` is the
@@ -363,8 +370,20 @@ broken this in the past.
   `macos753.image` were originally obtained/created for this specific
   build — fill this in next time it's done from scratch.
 - The wxWidgets 3.2.1 source-build commands (§3) aren't captured yet.
-- NEXT and APPLE II are unimplemented placeholders in `config.json` — no
-  setup steps exist for them yet.
+- NEXT and APPLE II are now implemented (Previous and LinApple
+  respectively) but only documented in `../../docs/software-setup.md`
+  §6-7 - this file was never updated to cover them, see the note at the
+  top.
+- **Pi 3B does not get Previous or LinApple** (2026-09-25 decision) - the
+  Pi 3B doesn't have the power/performance headroom for them on top of
+  LisaEm/Basilisk II/Mini vMac. `config.json` is shared across both Pis
+  (all paths are now uniform, no per-machine divergence needed for the
+  five-system config), but the Pi 3B simply never got the two `.deb`s
+  installed - `check_deps.py` correctly flags `next`/`apple2` as missing
+  there, which is expected, not a bug. The Pi 3B was also powered off
+  without its physical GPIO power button/LED ever being wired up, so the
+  button/LED extensions for Previous/LinApple (`docs/software-setup.md`
+  §2) were never tested on it either.
 - Mini vMac was also added to a second Pi (`config.json` from the first Pi
   won't just work there unless the same binaries/ROMs/disks are placed at
   the same paths) — this file assumes one Pi at a time; note which
