@@ -10,19 +10,23 @@
 #   - LisaEm: F12, its power-button hotkey (see software-setup.md §1).
 #   - Previous: F10, its documented clean-shutdown key (software-setup.md
 #     §6), same as pressing it manually inside NeXTSTEP.
-#   - Basilisk II, Mini vMac, and LinApple: deliberately NOT handled, just
-#     ignored if the button is pressed while any of them is running.
-#     Mini vMac (this fork) has no safe host-triggerable shutdown at all -
-#     no signal handler, buffered disk writes only flushed on a clean
-#     exit, and its own force-quit path (Ctrl+Q+Y) is documented by the
-#     emulator itself as a disk-corruption risk. Basilisk II's upstream
-#     source maps a window-close request to a clean ADB Power keypress,
-#     but this specific Debian-packaged build (confirmed 2026-09-24: both
+#   - LinApple: F12, its quit hotkey - user-confirmed on real hardware
+#     (2026-09-24), not source-reviewed like the others above (Apple II
+#     has no ADB/soft-power concept for this to map onto the way the Mac
+#     emulators' shutdowns do; F12 here is simply LinApple's own quit
+#     binding).
+#   - Basilisk II and Mini vMac: deliberately NOT handled, just ignored
+#     if the button is pressed while either is running. Mini vMac (this
+#     fork) has no safe host-triggerable shutdown at all - no signal
+#     handler, buffered disk writes only flushed on a clean exit, and its
+#     own force-quit path (Ctrl+Q+Y) is documented by the emulator itself
+#     as a disk-corruption risk. Basilisk II's upstream source maps a
+#     window-close request to a clean ADB Power keypress, but this
+#     specific Debian-packaged build (confirmed 2026-09-24: both
 #     `xdotool windowclose` and a raw WM_DELETE_WINDOW ClientMessage sent
 #     directly to its actual window had zero effect on real hardware) has
 #     no working equivalent - shut both of these down from inside the
-#     guest instead. Apple II/LinApple has no soft-power concept to
-#     trigger, same as real Apple II hardware.
+#     guest instead.
 #   - Nothing running (the launcher menu is showing): power on the Lisa
 #     via lisa-run-with-led.sh, i.e. the button "powers on" the Lisa the
 #     same way a real one would.
@@ -46,8 +50,11 @@ gpiomon --bias=pull-down --edges=rising --debounce-period=20ms --chip=gpiochip0 
   elif pgrep -x previous >/dev/null 2>&1; then
     echo "power button pressed - Previous is running, sending F10"
     DISPLAY=:0 xdotool key --clearmodifiers F10
-  elif pgrep -x BasiliskII >/dev/null 2>&1 || pgrep -x minivmac >/dev/null 2>&1 || pgrep -x linapple >/dev/null 2>&1; then
-    echo "power button pressed - Basilisk II/Mini vMac/LinApple is running, no safe host-side shutdown trigger exists - ignoring"
+  elif pgrep -x linapple >/dev/null 2>&1; then
+    echo "power button pressed - LinApple is running, sending F12"
+    DISPLAY=:0 xdotool key --clearmodifiers F12
+  elif pgrep -x BasiliskII >/dev/null 2>&1 || pgrep -x minivmac >/dev/null 2>&1; then
+    echo "power button pressed - Basilisk II/Mini vMac is running, no safe host-side shutdown trigger exists - ignoring"
   else
     echo "power button pressed - nothing is running, powering on Lisa"
     "$RUN_SCRIPT" "${RUN_ARGS[@]}" &

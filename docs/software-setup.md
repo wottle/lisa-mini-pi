@@ -121,29 +121,40 @@ showing (started once, alongside `openbox`, in
 `system/xsession-launcher.sh`; see below). On each GPIO17 press, it
 dispatches to whichever emulator (if any) is currently running:
 
-- **LisaEm**: sends F12 (its power-button hotkey).
-- **Previous**: sends F10, its documented clean-shutdown key (§6).
-- **Basilisk II, Mini vMac, and LinApple**: deliberately *not* handled —
-  the button press is ignored while any of them is running. Upstream
-  Basilisk II source (`src/SDL/video_sdl.cpp` in `cebix/macemu`) maps a
-  window-close request to a genuine ADB Power keypress
-  (`ADBKeyDown(0x7f)`/`ADBKeyUp(0x7f)`), which would be exactly what we
-  want — **but the actual Debian-packaged `basilisk2` build doesn't
-  behave this way**: confirmed on real hardware (2026-09-24) that
-  neither `xdotool windowclose` nor a raw `WM_DELETE_WINDOW`
-  `ClientMessage` sent directly to its actual window (verified correct
-  via the full X window tree, not guessed) has any effect at all - the
-  package is apparently built from an older codebase (its man page is
-  dated 2002) later relinked against SDL2, whose event handling doesn't
-  match the modern upstream fork's source. This fork of Mini vMac has no
-  safe host-triggerable shutdown at all either (no signal handler,
-  buffered disk writes only flushed on a clean exit, and its own
-  force-quit path is documented by the emulator itself as a
-  disk-corruption risk). Apple II/LinApple has no soft-power concept to
-  trigger, matching real Apple II hardware. Shut all three of these down
-  from inside the guest instead.
+- **LisaEm**: sends F12 (its power-button hotkey), via `lisa-run-with-led.sh`.
+- **Previous**: sends F10, its documented clean-shutdown key (§6), via
+  `previous-run-with-led.sh`.
+- **LinApple**: sends F12, its quit hotkey, via `linapple-run-with-led.sh`.
+  User-confirmed on real hardware (2026-09-24) that this cleanly quits
+  LinApple, unlike the other two below - not source-reviewed the way
+  Basilisk II/Mini vMac were, since Apple II has no ADB/soft-power
+  concept for F12 to map onto; it's simply LinApple's own quit binding.
+- **Basilisk II and Mini vMac**: deliberately *not* handled — the button
+  press is ignored while either is running. Upstream Basilisk II source
+  (`src/SDL/video_sdl.cpp` in `cebix/macemu`) maps a window-close request
+  to a genuine ADB Power keypress (`ADBKeyDown(0x7f)`/`ADBKeyUp(0x7f)`),
+  which would be exactly what we want — **but the actual Debian-packaged
+  `basilisk2` build doesn't behave this way**: confirmed on real hardware
+  (2026-09-24) that neither `xdotool windowclose` nor a raw
+  `WM_DELETE_WINDOW` `ClientMessage` sent directly to its actual window
+  (verified correct via the full X window tree, not guessed) has any
+  effect at all - the package is apparently built from an older codebase
+  (its man page is dated 2002) later relinked against SDL2, whose event
+  handling doesn't match the modern upstream fork's source. This fork of
+  Mini vMac has no safe host-triggerable shutdown at all either (no
+  signal handler, buffered disk writes only flushed on a clean exit, and
+  its own force-quit path is documented by the emulator itself as a
+  disk-corruption risk). Shut both of these down from inside the guest
+  instead.
 - **Nothing running** (the launcher menu is showing): launches LisaEm
   via `lisa-run-with-led.sh` — the button "powers on" the Lisa.
+
+All three LED wrapper scripts (`lisa-run-with-led.sh`,
+`previous-run-with-led.sh`, `linapple-run-with-led.sh`) follow the same
+pattern: light GPIO18 on start, turn it off on exit (however it exits),
+so the LED doubles as a visual "the power button will do something for
+this emulator" indicator - deliberately not wired up for Basilisk II or
+Mini vMac, matching the button itself.
 
 **A bare `SIGTERM`/kill to any of these processes was deliberately never
 considered as a shutdown mechanism** — for Mini vMac specifically it's
@@ -342,9 +353,11 @@ individual floppy images:
 curl -L -o ~/TotalReplay_v6.1.hdv "https://archive.org/download/TotalReplay/Total%20Replay%20v6.1.hdv"
 ```
 
-`config.json`'s `apple2` entry launches straight into it:
+`config.json`'s `apple2` entry launches straight into it via
+`linapple-run-with-led.sh` (§2's LED wrapper), forwarding all arguments
+to the real binary:
 ```
-["/usr/bin/linapple", "--hd1", "/home/wottle/TotalReplay_v6.1.hdv", "--autoboot", "--fullscreen"]
+["/home/wottle/lisa-mini-pi/software/lisa-pi-launcher/linapple-run-with-led.sh", "--hd1", "/home/wottle/TotalReplay_v6.1.hdv", "--autoboot", "--fullscreen"]
 ```
 
 `linapple --help` lists the full flag set if you want a different boot
