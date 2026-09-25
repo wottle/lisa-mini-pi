@@ -50,7 +50,7 @@ class LauncherState:
     def finish_starting(self) -> None:
         self._phase = Phase.SELECTING
 
-    def panel_lines(self) -> tuple[str, str]:
+    def header_text(self) -> str:
         if self._phase == Phase.STARTING:
-            return ("STARTING...", f"STARTING {self.selected.name}...")
-        return ("SELECT SYSTEM...", f"{self.selected.name} / {self.selected.subtitle}")
+            return f"STARTING {self.selected.name}..."
+        return "CHOOSE YOUR ADVENTURE"

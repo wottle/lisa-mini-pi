@@ -57,17 +57,17 @@ def test_finish_starting_returns_to_selecting():
     assert state.phase == Phase.SELECTING
 
 
-def test_panel_lines_while_selecting():
+def test_header_text_while_selecting():
     state = LauncherState([LISA, MAC])
 
-    assert state.panel_lines() == ("SELECT SYSTEM...", "LISA / OFFICE SYSTEM 3.1")
+    assert state.header_text() == "CHOOSE YOUR ADVENTURE"
 
 
-def test_panel_lines_while_starting():
+def test_header_text_while_starting():
     state = LauncherState([LISA, MAC])
     state.start_selected()
 
-    assert state.panel_lines() == ("STARTING...", "STARTING LISA...")
+    assert state.header_text() == "STARTING LISA..."
 
 
 def test_cannot_construct_with_empty_system_list():

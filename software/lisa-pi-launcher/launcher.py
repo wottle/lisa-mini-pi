@@ -1,6 +1,6 @@
-"""Entry point: fullscreen pygame kiosk that shows the Lisa-style boot
-diagnostic, then a keyboard-driven system picker, launching the selected
-emulator as a subprocess and returning to the picker when it exits."""
+"""Entry point: fullscreen pygame kiosk showing a keyboard/mouse-driven
+"CHOOSE YOUR ADVENTURE" system picker, launching the selected emulator as
+a subprocess and returning to the picker when it exits."""
 
 import os
 import subprocess
@@ -59,30 +59,20 @@ import cursor
 import theme
 import x11focus
 from bitmap_font import CHAR_WIDTH  # noqa: F401 (documents the font dependency)
-from boot_diag import BootDiagnostic
 from config import load_config
 from rendering import ItemVisual, draw_checkerboard_cached, hit_test, render_frame
 from state import LauncherState, Phase
 
-DIAG_ITEMS = ["CPU", "MEM", "I/O", "EXPANSION"]
+# The Lisa-style boot-diagnostic animation (CPU/MEM/I/O/EXPANSION test,
+# see boot_diag.py) is disabled as of the 2026-09-25 "CHOOSE YOUR
+# ADVENTURE" redesign - the picker now shows immediately on launch, no
+# animated pre-phase. boot_diag.py itself is left in place (and its own
+# tests still pass) in case it's ever wanted back; this file simply
+# doesn't import or call it anymore.
 
 
 def _load_icon(path: str) -> pygame.Surface:
     return pygame.image.load(path).convert()
-
-
-def _diag_items_visual(diag: BootDiagnostic, icons: dict[str, pygame.Surface]) -> list[ItemVisual]:
-    items = []
-    for index, name in enumerate(diag.items):
-        icon_key = f"diag_{name.lower().replace('/', '')}"
-        status_icon = icons["check"] if index in diag.completed else None
-        items.append(ItemVisual(
-            icon=icons[icon_key],
-            label=name,
-            status_icon=status_icon,
-            selected=(index == diag.current_index),
-        ))
-    return items
 
 
 def _system_items_visual(state: LauncherState, icons: dict[str, pygame.Surface]) -> list[ItemVisual]:
@@ -93,23 +83,23 @@ def _system_items_visual(state: LauncherState, icons: dict[str, pygame.Surface])
             label=system.name,
             status_icon=None,
             selected=(index == state.selected_index),
+            subtitle=system.subtitle,
         ))
     return items
 
 
 def _draw_frame(
     real_screen: pygame.Surface,
-    line1: str,
-    line2: str,
+    header_text: str,
     items: list[ItemVisual],
 ) -> None:
     # The checkerboard is drawn directly onto real_screen at its own
     # native resolution (never scaled, so it never aliases/moires);
-    # render_frame then draws the opaque top strip/panel/items directly
-    # on top of it, on this same surface - see theme.py for why there's
-    # no separate logical surface scaled up to this one anymore.
+    # render_frame then draws the opaque panel directly on top of it, on
+    # this same surface - see theme.py for why there's no separate
+    # logical surface scaled up to this one anymore.
     draw_checkerboard_cached(real_screen, theme.CHECKER_CELL_SIZE)
-    render_frame(real_screen, line1, line2, items)
+    render_frame(real_screen, header_text, items)
     pygame.display.flip()
 
 
@@ -143,17 +133,12 @@ def main() -> None:
     icons: dict[str, pygame.Surface] = {}
     for system in systems:
         icons[system.id] = _load_icon(system.icon)
-    for diag_name in DIAG_ITEMS:
-        key = f"diag_{diag_name.lower().replace('/', '')}"
-        icons[key] = _load_icon(f"icons/{key}.png")
-    icons["check"] = _load_icon("icons/check.png")
 
-    diag = BootDiagnostic(items=DIAG_ITEMS, step_seconds=theme.BOOT_DIAG_STEP_SECONDS)
     state = LauncherState(systems)
 
     running = True
     while running:
-        dt = clock.tick(30) / 1000.0
+        clock.tick(30)
 
         for event in pygame.event.get():
             if event.type in _DIAG_EVENT_NAMES:
@@ -163,7 +148,7 @@ def main() -> None:
 
             if event.type == pygame.QUIT:
                 running = False
-            elif event.type == pygame.KEYDOWN and diag.done:
+            elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LEFT:
                     state.move_selection(-1)
                 elif event.key == pygame.K_RIGHT:
@@ -173,6 +158,8 @@ def main() -> None:
                 elif event.key == pygame.K_s:
                     subprocess.run(["systemctl", "poweroff"])
                 elif event.key == pygame.K_r:
+                    # Not shown in the footer hint (only S/Q are), but
+                    # still works - see the 2026-09-25 redesign decision.
                     subprocess.run(["systemctl", "reboot"])
                 elif event.key == pygame.K_q:
                     # Suppress the watchdog first - it doesn't know about
@@ -186,7 +173,7 @@ def main() -> None:
                     subprocess.run(["systemctl", "stop", "launcher-watchdog.timer"])
                     subprocess.run(["systemctl", "start", "lightdm.service"])
                     running = False
-            elif event.type == pygame.MOUSEMOTION and diag.done:
+            elif event.type == pygame.MOUSEMOTION:
                 # Hover selects, mirroring the arrow keys - so someone
                 # without a keyboard can see what they're about to pick
                 # before committing with a click. event.pos is already in
@@ -195,21 +182,14 @@ def main() -> None:
                 index = hit_test(_system_items_visual(state, icons), event.pos)
                 if index is not None:
                     state.select_index(index)
-            elif event.type == pygame.MOUSEBUTTONDOWN and diag.done and event.button == 1:
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 index = hit_test(_system_items_visual(state, icons), event.pos)
                 if index is not None:
                     state.select_index(index)
                     real_screen = _launch_selected(state, real_screen, icons)
 
-        if not diag.done:
-            diag.update(dt)
-            items = _diag_items_visual(diag, icons)
-            line1, line2 = ("TESTING...", "")
-        else:
-            items = _system_items_visual(state, icons)
-            line1, line2 = state.panel_lines()
-
-        _draw_frame(real_screen, line1, line2, items)
+        items = _system_items_visual(state, icons)
+        _draw_frame(real_screen, state.header_text(), items)
 
     pygame.quit()
 
@@ -222,11 +202,10 @@ def _launch_selected(
     state.start_selected()
 
     # Render and flip one STARTING-phase frame first, so the
-    # "STARTING..."/"STARTING <NAME>..." panel text is actually visible for
-    # a moment rather than being set and discarded before the next flip.
+    # "STARTING <NAME>..." header text is actually visible for a moment
+    # rather than being set and discarded before the next flip.
     items = _system_items_visual(state, icons)
-    line1, line2 = state.panel_lines()
-    _draw_frame(real_screen, line1, line2, items)
+    _draw_frame(real_screen, state.header_text(), items)
 
     # Cover the screen in solid black and leave this window mapped, rather
     # than tearing the display down and recreating it. There's no window
@@ -276,7 +255,7 @@ def _launch_selected(
         # Missing binary, permission denied, etc. Don't let a bad
         # `command` entry crash the whole kiosk process - under
         # Restart=always that would just silently respawn back to the
-        # boot diagnostic with no indication of what went wrong.
+        # picker with no indication of what went wrong.
         launch_failed = True
     finally:
         state.finish_starting()
@@ -295,7 +274,7 @@ def _launch_selected(
         pygame.event.clear()
 
     if launch_failed:
-        _draw_frame(real_screen, "LAUNCH FAILED", "", _system_items_visual(state, icons))
+        _draw_frame(real_screen, "LAUNCH FAILED", _system_items_visual(state, icons))
         pygame.time.wait(1000)
 
     return real_screen

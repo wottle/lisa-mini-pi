@@ -6,12 +6,11 @@ import pygame
 import theme
 from rendering import (
     ItemVisual,
-    _item_footprint,
+    _item_box_rect,
     draw_checkerboard,
     draw_checkerboard_cached,
     draw_panel,
     draw_item,
-    draw_top_strip,
     hit_test,
     item_layout,
     render_frame,
@@ -76,6 +75,21 @@ def test_draw_panel_returns_interior_rect_within_panel_bounds():
     assert surface.get_at((interior.left + 1, interior.top + 1))[:3] == (255, 255, 255)
 
 
+def test_draw_item_unselected_has_white_background_and_black_border():
+    surface = _make_screen()
+    surface.fill((0, 0, 0))
+    item = ItemVisual(icon=_make_icon(), label="LISA", status_icon=None, selected=False, subtitle="OFFICE SYSTEM 3")
+
+    draw_item(surface, center_x=200, top_y=40, item=item)
+
+    rect = _item_box_rect(center_x=200, top_y=40)
+    # A pixel well inside the card, away from the icon/text, should be
+    # the card's plain white background.
+    assert surface.get_at((rect.left + 2, rect.top + 2))[:3] == (255, 255, 255)
+    # The border itself is black.
+    assert surface.get_at((rect.left, rect.top))[:3] == (0, 0, 0)
+
+
 def test_draw_item_selected_fills_area_black():
     surface = _make_screen()
     surface.fill((255, 255, 255))
@@ -83,49 +97,52 @@ def test_draw_item_selected_fills_area_black():
 
     draw_item(surface, center_x=200, top_y=40, item=item)
 
-    # somewhere in the item's footprint there should be a black background
+    # somewhere in the item's card there should be a black background
     # pixel from the reverse-video fill (not just the icon's own black
     # pixels, which a non-selected icon would also have). Derive the
-    # actual footprint from the real layout function rather than
-    # hardcoding geometry that would silently drift out of sync with
-    # theme.py's icon/spacing constants.
-    footprint = _item_footprint(center_x=200, top_y=40, item=item)
+    # actual rect from the real layout function rather than hardcoding
+    # geometry that would silently drift out of sync with theme.py's
+    # icon/spacing constants.
+    rect = _item_box_rect(center_x=200, top_y=40)
     black_background_found = any(
         surface.get_at((x, y))[:3] == (0, 0, 0)
-        for x in range(footprint.left, footprint.left + 5)
-        for y in range(footprint.top, footprint.top + 5)
+        for x in range(rect.left, rect.left + 5)
+        for y in range(rect.top, rect.top + 5)
     )
     assert black_background_found
 
 
-def test_top_strip_is_white():
+def test_draw_item_draws_subtitle_when_present():
     surface = _make_screen()
-    surface.fill((0, 0, 0))  # anything other than white, to prove draw_top_strip actually paints it
+    surface.fill((255, 255, 255))
+    item = ItemVisual(icon=_make_icon(), label="LISA", status_icon=None, selected=False, subtitle="OFFICE SYSTEM 3")
 
-    draw_top_strip(surface)
+    draw_item(surface, center_x=200, top_y=40, item=item)
 
-    # A pixel near the left edge of the strip (away from the right-aligned
-    # status glyph) should be plain white.
-    assert surface.get_at((2, 0))[:3] == (255, 255, 255)
-    assert surface.get_at((2, theme.TOP_STRIP_HEIGHT - 1))[:3] == (255, 255, 255)
-
-
-def test_top_strip_spans_the_full_surface_width():
-    # draw_top_strip takes its width from the surface it's given (there's
-    # no fixed logical-canvas width anymore) - confirm it actually fills
-    # a surface of a different width than theme.SCREEN_WIDTH.
-    surface = pygame.Surface((200, theme.TOP_STRIP_HEIGHT))
-    surface.fill((0, 0, 0))
-
-    draw_top_strip(surface)
-
-    assert surface.get_at((199, 0))[:3] == (255, 255, 255)
+    rect = _item_box_rect(center_x=200, top_y=40)
+    # Some black pixel should exist in the lower portion of the card
+    # (where the subtitle text renders) beyond just the icon/name area.
+    subtitle_band_has_ink = any(
+        surface.get_at((x, y))[:3] == (0, 0, 0)
+        for x in range(rect.left, rect.right)
+        for y in range(rect.bottom - theme.ITEM_BOX_PADDING_BOTTOM, rect.bottom)
+    )
+    assert subtitle_band_has_ink
 
 
-def test_render_frame_draws_top_strip():
+def test_render_frame_draws_header_text():
     surface = _make_screen()
-    render_frame(surface, "SELECT SYSTEM...", "", [])
-    assert surface.get_at((2, 0))[:3] == (255, 255, 255)
+    render_frame(surface, "CHOOSE YOUR ADVENTURE", [])
+    interior_top_left = (theme.PANEL_X + theme.PANEL_CONTENT_INSET, theme.PANEL_Y + theme.PANEL_CONTENT_INSET)
+    # The title is drawn starting at the interior's top-left corner - the
+    # "C" glyph's leftmost column should paint at least one black pixel
+    # near there.
+    region_has_ink = any(
+        surface.get_at((interior_top_left[0] + x, interior_top_left[1] + y))[:3] == (0, 0, 0)
+        for x in range(0, 10)
+        for y in range(0, 10)
+    )
+    assert region_has_ink
 
 
 def test_real_shipped_icons_match_theme_icon_size():
@@ -158,7 +175,7 @@ def test_checkerboard_survives_under_render_frame():
     # render_frame doesn't paint over (i.e. away from the panel).
     surface = _make_screen()
     draw_checkerboard_cached(surface, 4)
-    render_frame(surface, "SELECT SYSTEM...", "", [])
+    render_frame(surface, "CHOOSE YOUR ADVENTURE", [])
 
     corner_y = surface.get_height() - 20
     samples = {surface.get_at((x, corner_y))[:3] for x in range(0, 40)}
@@ -167,23 +184,23 @@ def test_checkerboard_survives_under_render_frame():
 
 def test_item_layout_matches_what_render_frame_actually_draws():
     # Regression guard against the layout drifting between drawing and
-    # hit-testing: wherever item_layout() says an item's footprint is,
-    # that's where render_frame's reverse-video fill for the selected
-    # item must actually be.
+    # hit-testing: wherever item_layout() says an item's card is, that's
+    # where render_frame's reverse-video fill for the selected item must
+    # actually be.
     items = [
         ItemVisual(icon=_make_icon(), label="LISA", status_icon=None, selected=True),
         ItemVisual(icon=_make_icon(), label="MACINTOSH", status_icon=None, selected=False),
     ]
     surface = _make_screen()
-    render_frame(surface, "SELECT SYSTEM...", "", items)
+    render_frame(surface, "CHOOSE YOUR ADVENTURE", items)
 
-    footprints = item_layout(items)
-    assert len(footprints) == 2
+    rects = item_layout(items)
+    assert len(rects) == 2
 
-    selected_footprint = footprints[0]
-    corner = (selected_footprint.left + 2, selected_footprint.top + 2)
+    selected_rect = rects[0]
+    corner = (selected_rect.left + 2, selected_rect.top + 2)
     assert surface.get_at(corner)[:3] == (0, 0, 0), (
-        "item_layout()'s footprint for the selected item should be black "
+        "item_layout()'s rect for the selected item should be black "
         "(reverse video), matching where render_frame actually drew it"
     )
 
@@ -193,10 +210,10 @@ def test_hit_test_returns_index_of_item_under_point_or_none():
         ItemVisual(icon=_make_icon(), label="LISA", status_icon=None, selected=True),
         ItemVisual(icon=_make_icon(), label="MACINTOSH", status_icon=None, selected=False),
     ]
-    footprints = item_layout(items)
+    rects = item_layout(items)
 
-    assert hit_test(items, footprints[0].center) == 0
-    assert hit_test(items, footprints[1].center) == 1
+    assert hit_test(items, rects[0].center) == 0
+    assert hit_test(items, rects[1].center) == 1
     assert hit_test(items, (0, 0)) is None
 
 
@@ -207,11 +224,11 @@ def test_item_layout_empty_for_no_items():
 def test_render_frame_runs_without_error_with_multiple_items():
     surface = _make_screen()
     items = [
-        ItemVisual(icon=_make_icon(), label="LISA", status_icon=None, selected=True),
-        ItemVisual(icon=_make_icon(), label="MACINTOSH", status_icon=None, selected=False),
+        ItemVisual(icon=_make_icon(), label="LISA", status_icon=None, selected=True, subtitle="OFFICE SYSTEM 3"),
+        ItemVisual(icon=_make_icon(), label="MACINTOSH", status_icon=None, selected=False, subtitle="SYSTEM 7.5.3"),
     ]
 
-    render_frame(surface, "SELECT SYSTEM...", "LISA / OFFICE SYSTEM 3.1", items)
+    render_frame(surface, "CHOOSE YOUR ADVENTURE", items)
     # no exception is the primary assertion; also sanity-check something
     # was actually drawn (not a blank surface).
     colors = {surface.get_at((x, y))[:3] for x in range(0, theme.SCREEN_WIDTH, 10) for y in range(0, theme.SCREEN_HEIGHT, 10)}

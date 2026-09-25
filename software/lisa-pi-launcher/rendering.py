@@ -1,7 +1,7 @@
-"""Composes the checkerboard background, the diagnostic/selection panel
-(with its drop shadow), and the row of icon+label+status items directly
-onto the real screen surface - see theme.py for why there's no separate
-logical/design surface scaled up to it."""
+"""Composes the checkerboard background and the "CHOOSE YOUR ADVENTURE"
+panel (title, rule, a row of bordered item cards, a second rule, and a
+footer hint row) directly onto the real screen surface - see theme.py
+for why there's no separate logical/design surface scaled up to it."""
 
 from dataclasses import dataclass
 
@@ -12,6 +12,10 @@ from bitmap_font import render_text, text_size
 
 _BLACK = (0, 0, 0)
 _WHITE = (255, 255, 255)
+
+_FOOTER_LEFT = "< > SELECT"
+_FOOTER_CENTER = "RETURN OR CLICK TO START"
+_FOOTER_RIGHT = "S SHUT DOWN   Q QUIT"
 
 # Cache for the checkerboard: it's fully deterministic for a given surface
 # size, so it's built once and blitted from then on rather than redrawing
@@ -26,6 +30,7 @@ class ItemVisual:
     label: str
     status_icon: pygame.Surface | None
     selected: bool
+    subtitle: str = ""
 
 
 def draw_checkerboard(surface: pygame.Surface, cell_size: int) -> None:
@@ -69,8 +74,13 @@ def panel_interior_rect(row_count: int = 1) -> pygame.Rect:
     """The panel's interior content rect, in screen coordinates. Pure
     layout math (no drawing) so it can be reused by both draw_panel and
     mouse hit-testing without them ever drifting apart."""
-    panel_rect = pygame.Rect(theme.PANEL_X, theme.PANEL_Y, theme.PANEL_WIDTH, _panel_height(row_count))
-    return panel_rect.inflate(-theme.PANEL_CONTENT_INSET, -theme.PANEL_CONTENT_INSET)
+    height = _panel_height(row_count)
+    return pygame.Rect(
+        theme.PANEL_X + theme.PANEL_CONTENT_INSET,
+        theme.PANEL_Y + theme.PANEL_CONTENT_INSET,
+        theme.PANEL_WIDTH - 2 * theme.PANEL_CONTENT_INSET,
+        height - 2 * theme.PANEL_CONTENT_INSET,
+    )
 
 
 def draw_panel(surface: pygame.Surface, row_count: int = 1) -> pygame.Rect:
@@ -90,95 +100,98 @@ def draw_panel(surface: pygame.Surface, row_count: int = 1) -> pygame.Rect:
     return panel_interior_rect(row_count)
 
 
-def _item_footprint(center_x: int, top_y: int, item: ItemVisual) -> pygame.Rect:
-    """An item's reverse-video footprint rect, in screen coordinates.
-    Pure layout math (no drawing) so it can be reused by both draw_item
-    and mouse hit-testing without them ever drifting apart."""
-    label_size = text_size(item.label, scale=theme.FONT_SCALE)
-    status_size = (theme.CHECK_ICON_SIZE, theme.CHECK_ICON_SIZE) if item.status_icon else (0, 0)
+def _grid_top(interior: pygame.Rect) -> int:
+    """Y coordinate (screen space) of the top of the item-card grid, i.e.
+    just below the title and its rule. Shared by item_layout() (used for
+    mouse hit-testing) and render_frame() (used for actually drawing) so
+    they can never drift apart - the title's height only depends on
+    FONT_SCALE, never on the header text's actual content/length, so this
+    needs no header-text argument."""
+    title_height = text_size("X", scale=theme.FONT_SCALE)[1]
+    return interior.top + title_height + theme.HEADER_RULE_GAP + theme.RULE_THICKNESS + theme.RULE_TO_GRID_GAP
 
-    # At least as wide as its content (icon/label/status, plus padding),
-    # but never narrower than the column allotted to it by ICON_SPACING,
-    # so short labels (e.g. "MEM") still get a properly sized selection
-    # box rather than one that hugs just the icon - matching the real
-    # Lisa's diagnostic screen, where each item is an evenly sized box.
-    content_based_width = max(theme.ICON_SIZE, label_size[0], status_size[0]) + theme.ITEM_CONTENT_PADDING
-    content_width = max(content_based_width, theme.ICON_SPACING - theme.ITEM_MIN_WIDTH_SLACK)
-    content_height = (
-        label_size[1]
-        + theme.ITEM_ELEMENT_GAP
-        + theme.ICON_SIZE
-        + theme.ITEM_ELEMENT_GAP
-        + (status_size[1] if item.status_icon else 0)
-        + theme.ITEM_CONTENT_PADDING
-    )
-    footprint = pygame.Rect(0, 0, content_width, content_height)
-    footprint.centerx = center_x
-    footprint.top = top_y
-    return footprint
+
+def _item_box_rect(center_x: int, top_y: int) -> pygame.Rect:
+    """A single item card's rect, in screen coordinates. Pure layout math
+    (no drawing) so it can be reused by both draw_item and mouse
+    hit-testing without them ever drifting apart."""
+    rect = pygame.Rect(0, 0, theme.ITEM_BOX_WIDTH, theme.ITEM_ROW_HEIGHT)
+    rect.centerx = center_x
+    rect.top = top_y
+    return rect
 
 
 def item_layout(items: list[ItemVisual]) -> list[pygame.Rect]:
-    """Each item's footprint rect, in screen coordinates, in the same
-    positions render_frame draws them at - used both for drawing and for
-    mouse hit-testing (see hit_test). Items beyond ITEMS_PER_ROW wrap
-    onto additional rows, each independently centered, rather than
-    overflowing the panel's width."""
+    """Each item card's rect, in screen coordinates, in the same
+    positions render_frame actually draws them at - used both for
+    drawing and for mouse hit-testing (see hit_test). Items beyond
+    ITEMS_PER_ROW wrap onto additional rows, each independently
+    centered, rather than overflowing the panel's width."""
     if not items:
         return []
     rows = [items[i : i + theme.ITEMS_PER_ROW] for i in range(0, len(items), theme.ITEMS_PER_ROW)]
     interior = panel_interior_rect(row_count=len(rows))
     spacing = theme.ICON_SPACING
 
-    footprints = []
-    row_top = interior.top + theme.ITEMS_TOP_MARGIN
+    rects = []
+    row_top = _grid_top(interior)
     for row_items in rows:
         total_width = spacing * (len(row_items) - 1)
         start_x = interior.centerx - total_width // 2
-        footprints.extend(
-            _item_footprint(start_x + index * spacing, row_top, item) for index, item in enumerate(row_items)
+        rects.extend(
+            _item_box_rect(start_x + index * spacing, row_top) for index, _ in enumerate(row_items)
         )
         row_top += theme.ITEM_ROW_HEIGHT + theme.ITEMS_ROW_GAP
-    return footprints
+    return rects
 
 
 def hit_test(items: list[ItemVisual], point: tuple[int, int]) -> int | None:
-    """Returns the index of the item whose footprint contains `point`
-    (screen coordinates), or None if the point isn't over any item -
-    used to turn a mouse position into a selection."""
-    for index, footprint in enumerate(item_layout(items)):
-        if footprint.collidepoint(point):
+    """Returns the index of the item whose card contains `point` (screen
+    coordinates), or None if the point isn't over any item - used to
+    turn a mouse position into a selection."""
+    for index, rect in enumerate(item_layout(items)):
+        if rect.collidepoint(point):
             return index
     return None
 
 
 def draw_item(surface: pygame.Surface, center_x: int, top_y: int, item: ItemVisual) -> None:
-    footprint = _item_footprint(center_x, top_y, item)
-    label_size = text_size(item.label, scale=theme.FONT_SCALE)
+    rect = _item_box_rect(center_x, top_y)
 
     fg_color = _WHITE if item.selected else _BLACK
-    bg_color = _BLACK if item.selected else None
+    bg_color = _BLACK if item.selected else _WHITE
 
-    if bg_color is not None:
-        surface.fill(bg_color, footprint)
-
-    label_rect = pygame.Rect(0, 0, *label_size)
-    label_rect.centerx = center_x
-    label_rect.top = footprint.top + theme.ITEM_ELEMENT_GAP
-    render_text(surface, item.label, label_rect.left, label_rect.top, scale=theme.FONT_SCALE, color=fg_color)
+    surface.fill(bg_color, rect)
+    pygame.draw.rect(surface, _BLACK, rect, width=1)
 
     icon_rect = pygame.Rect(0, 0, theme.ICON_SIZE, theme.ICON_SIZE)
     icon_rect.centerx = center_x
-    icon_rect.top = label_rect.bottom + theme.ITEM_ELEMENT_GAP
+    icon_rect.top = rect.top + theme.ITEM_BOX_PADDING_TOP
     icon_to_draw = item.icon
     if item.selected:
         icon_to_draw = _invert_icon(item.icon)
     surface.blit(icon_to_draw, icon_rect)
 
+    label_size = text_size(item.label, scale=theme.FONT_SCALE)
+    label_rect = pygame.Rect(0, 0, *label_size)
+    label_rect.centerx = center_x
+    label_rect.top = icon_rect.bottom + theme.ITEM_BOX_ICON_NAME_GAP
+    render_text(surface, item.label, label_rect.left, label_rect.top, scale=theme.FONT_SCALE, color=fg_color)
+
+    if item.subtitle:
+        subtitle_size = text_size(item.subtitle, scale=theme.SUBTITLE_FONT_SCALE)
+        subtitle_rect = pygame.Rect(0, 0, *subtitle_size)
+        subtitle_rect.centerx = center_x
+        subtitle_rect.top = label_rect.bottom + theme.ITEM_BOX_NAME_SUBTITLE_GAP
+        render_text(
+            surface, item.subtitle, subtitle_rect.left, subtitle_rect.top,
+            scale=theme.SUBTITLE_FONT_SCALE, color=fg_color,
+        )
+
     if item.status_icon:
         status_rect = pygame.Rect(0, 0, theme.CHECK_ICON_SIZE, theme.CHECK_ICON_SIZE)
         status_rect.centerx = center_x
-        status_rect.top = icon_rect.bottom + theme.ITEM_ELEMENT_GAP
+        status_rect.top = label_rect.bottom + theme.ITEM_BOX_NAME_SUBTITLE_GAP
         status_icon_to_draw = item.status_icon
         if item.selected:
             status_icon_to_draw = _invert_icon(item.status_icon)
@@ -207,37 +220,41 @@ def _invert_icon(icon: pygame.Surface) -> pygame.Surface:
     return inverted
 
 
-def draw_top_strip(surface: pygame.Surface) -> None:
-    """A thin white bar across the very top of the screen, with a single
-    small right-aligned status character - per the spec, a placeholder
-    glyph that isn't load-bearing for v1."""
-    width, _ = surface.get_size()
-    strip_rect = pygame.Rect(0, 0, width, theme.TOP_STRIP_HEIGHT)
-    surface.fill(_WHITE, strip_rect)
-    char_width, char_height = text_size("H", scale=theme.FONT_SCALE)
-    x = width - char_width - theme.PANEL_CONTENT_INSET
-    y = (theme.TOP_STRIP_HEIGHT - char_height) // 2
-    render_text(surface, "H", x, y, scale=theme.FONT_SCALE, color=_BLACK)
+def _draw_rule(surface: pygame.Surface, interior: pygame.Rect, y: int) -> None:
+    surface.fill(_BLACK, pygame.Rect(interior.left, y, interior.width, theme.RULE_THICKNESS))
 
 
-def render_frame(surface: pygame.Surface, line1: str, line2: str, items: list[ItemVisual]) -> None:
+def render_frame(surface: pygame.Surface, header_text: str, items: list[ItemVisual]) -> None:
     """Draws one full frame directly onto `surface` (the real screen).
     Callers are expected to have already drawn the checkerboard
     (draw_checkerboard_cached) - everything here is opaque and simply
-    overdraws it where the top strip/panel/items are."""
-    draw_top_strip(surface)
-    interior = draw_panel(surface, row_count=_row_count(len(items)))
+    overdraws it where the panel is."""
+    row_count = _row_count(len(items))
+    interior = draw_panel(surface, row_count=row_count)
 
-    render_text(surface, line1, interior.left, interior.top, scale=theme.FONT_SCALE, color=_BLACK)
-    if line2:
-        render_text(
-            surface,
-            line2,
-            interior.left,
-            interior.top + text_size(line1, scale=theme.FONT_SCALE)[1] + theme.HEADER_LINE_GAP,
-            scale=theme.FONT_SCALE,
-            color=_BLACK,
-        )
+    render_text(surface, header_text, interior.left, interior.top, scale=theme.FONT_SCALE, color=_BLACK)
 
-    for item, footprint in zip(items, item_layout(items)):
-        draw_item(surface, footprint.centerx, footprint.top, item)
+    title_bottom = interior.top + text_size("X", scale=theme.FONT_SCALE)[1]
+    first_rule_y = title_bottom + theme.HEADER_RULE_GAP
+    _draw_rule(surface, interior, first_rule_y)
+
+    item_rects = item_layout(items)
+    for item, rect in zip(items, item_rects):
+        draw_item(surface, rect.centerx, rect.top, item)
+
+    grid_bottom = _grid_top(interior) + row_count * theme.ITEM_ROW_HEIGHT + max(0, row_count - 1) * theme.ITEMS_ROW_GAP
+    second_rule_y = grid_bottom + theme.GRID_TO_RULE_GAP
+    _draw_rule(surface, interior, second_rule_y)
+
+    footer_y = second_rule_y + theme.RULE_THICKNESS + theme.RULE_TO_FOOTER_GAP
+    render_text(surface, _FOOTER_LEFT, interior.left, footer_y, scale=theme.FONT_SCALE, color=_BLACK)
+    center_size = text_size(_FOOTER_CENTER, scale=theme.FONT_SCALE)
+    render_text(
+        surface, _FOOTER_CENTER, interior.centerx - center_size[0] // 2, footer_y,
+        scale=theme.FONT_SCALE, color=_BLACK,
+    )
+    right_size = text_size(_FOOTER_RIGHT, scale=theme.FONT_SCALE)
+    render_text(
+        surface, _FOOTER_RIGHT, interior.right - right_size[0], footer_y,
+        scale=theme.FONT_SCALE, color=_BLACK,
+    )
