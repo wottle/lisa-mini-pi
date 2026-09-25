@@ -122,27 +122,37 @@ showing (started once, alongside `openbox`, in
 dispatches to whichever emulator (if any) is currently running:
 
 - **LisaEm**: sends F12 (its power-button hotkey).
-- **Basilisk II**: requests a window close. Its `SDL_QUIT` handler
-  (`src/SDL/video_sdl.cpp` in upstream `cebix/macemu`) turns that into a
-  genuine ADB Power keypress (`ADBKeyDown(0x7f)`/`ADBKeyUp(0x7f)`) —
-  classic Mac OS treats this exactly like a real Mac's power key, the
-  same as pressing it manually. Confirmed via source review
-  (2026-09-24), not guessed.
 - **Previous**: sends F10, its documented clean-shutdown key (§6).
-- **Mini vMac and LinApple**: deliberately *not* handled — the button
-  press is ignored while either is running. This fork of Mini vMac has
-  no safe host-triggerable shutdown at all (no signal handler, buffered
-  disk writes only flushed on a clean exit, and its own force-quit path
-  is documented by the emulator itself as a disk-corruption risk) —
-  shut it down from inside the guest instead. Apple II/LinApple has no
-  soft-power concept to trigger, matching real Apple II hardware.
+- **Basilisk II, Mini vMac, and LinApple**: deliberately *not* handled —
+  the button press is ignored while any of them is running. Upstream
+  Basilisk II source (`src/SDL/video_sdl.cpp` in `cebix/macemu`) maps a
+  window-close request to a genuine ADB Power keypress
+  (`ADBKeyDown(0x7f)`/`ADBKeyUp(0x7f)`), which would be exactly what we
+  want — **but the actual Debian-packaged `basilisk2` build doesn't
+  behave this way**: confirmed on real hardware (2026-09-24) that
+  neither `xdotool windowclose` nor a raw `WM_DELETE_WINDOW`
+  `ClientMessage` sent directly to its actual window (verified correct
+  via the full X window tree, not guessed) has any effect at all - the
+  package is apparently built from an older codebase (its man page is
+  dated 2002) later relinked against SDL2, whose event handling doesn't
+  match the modern upstream fork's source. This fork of Mini vMac has no
+  safe host-triggerable shutdown at all either (no signal handler,
+  buffered disk writes only flushed on a clean exit, and its own
+  force-quit path is documented by the emulator itself as a
+  disk-corruption risk). Apple II/LinApple has no soft-power concept to
+  trigger, matching real Apple II hardware. Shut all three of these down
+  from inside the guest instead.
 - **Nothing running** (the launcher menu is showing): launches LisaEm
   via `lisa-run-with-led.sh` — the button "powers on" the Lisa.
 
 **A bare `SIGTERM`/kill to any of these processes was deliberately never
 considered as a shutdown mechanism** — for Mini vMac specifically it's
-actively unsafe (unflushed buffered disk writes), and for all of them it
-skips the guest OS's own clean-shutdown sequence, which is the whole
+actively unsafe (unflushed buffered disk writes); for Basilisk II it's a
+lower-risk fallback if you want it (no signal handler, but disk writes
+are raw unbuffered syscalls, so the actual risk is closer to unplugging
+a real un-shutdown Mac than to real data loss) but isn't wired up here by
+choice; for all of them it skips the guest OS's own clean-shutdown
+sequence, which is the whole
 point of a power button in the first place.
 
 Key detail: it sends the keypress via a plain, untargeted `xdotool key`
