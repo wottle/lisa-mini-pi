@@ -7,6 +7,11 @@ be wrong, incomplete, or unnecessary, fix it in the same change that
 changes the actual setup. Don't let this drift from what a fresh Pi
 actually needs.
 
+**`../../scripts/provision.sh` automates all five emulators**, not just
+the three this file covers - it's the faster path for a fresh Pi. This
+file (and `../../docs/software-setup.md`) remain the reference for what
+that script does and why.
+
 **This file does not cover Previous (NeXT) or LinApple (Apple II) at
 all** - those were added later and are documented only in
 `../../docs/software-setup.md` §6-7, including their real

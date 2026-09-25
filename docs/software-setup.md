@@ -6,6 +6,13 @@ the boot-time systemd configuration that ties it all together. Five
 emulators are covered: LisaEm (§1), Basilisk II (§4), Mini vMac (§5),
 Previous/NeXT (§6), and LinApple/Apple II (§7).
 
+**`../scripts/provision.sh` automates every step below** except placing
+your own ROM/disk images (never redistributed here - see each section)
+and the physical GPIO wiring. This file remains the reference for what
+that script does and why; read a section here if a step needs more
+context than the script's own comments give, or if you're doing
+something by hand instead.
+
 **Pi 3B note (as of 2026-09-25):** only LisaEm, Basilisk II, and Mini
 vMac are installed on the project's Pi 3B - it doesn't have the
 power/performance headroom for Previous and LinApple as well. `config.json`
