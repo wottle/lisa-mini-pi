@@ -229,17 +229,25 @@ says so explicitly. Everything (machine type, ROM selection, boot
 options, disk images, fullscreen) is configured interactively via an
 in-app settings GUI (press **F12** while it's running), saved to
 `~/.config/previous/previous.cfg`, and reloaded automatically on every
-subsequent launch - so `config.json`'s `next` entry is just
-`["/usr/bin/previous"]` with nothing else, and the one-time interactive
-setup below has to happen at the physical Pi (keyboard required for a
-couple of steps).
+subsequent launch.
+
+`config.json`'s `next` entry runs `previous-run-with-led.sh` (no
+arguments) rather than `/usr/bin/previous` directly - it's the same
+LED-on/LED-off wrapper pattern as `lisa-run-with-led.sh` for LisaEm,
+lighting GPIO18 for as long as Previous is running so the LED signals
+"the power button will do something" (the watcher sends Previous F10 -
+see §2's `lisa-power-button-watcher.sh` section). The one-time
+interactive setup below has to happen at the physical Pi (keyboard
+required for a couple of steps) regardless of which of the two you
+launch it with.
 
 You'll need a NeXTSTEP disk image - not redistributed here. One-time
 setup, at the Pi, with a keyboard attached:
 
 1. Launch Previous from the picker (or run `/usr/bin/previous` directly
-   for this first-run setup). The settings GUI opens automatically on
-   first launch.
+   for this first-run setup - the LED wrapper isn't required for setup,
+   just for the LED). The settings GUI opens automatically on first
+   launch.
 2. Uncheck **Show at startup** - see the gotcha below, this alone isn't
    enough.
 3. **System settings → Machine Type**: `NeXTstation` (not Turbo, not

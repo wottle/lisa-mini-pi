@@ -26,7 +26,7 @@
       "name": "NEXT",
       "subtitle": "NEXTSTEP 3.3",
       "icon": "icons/next.png",
-      "command": ["/usr/bin/previous"]
+      "command": ["/home/wottle/lisa-mini-pi/software/lisa-pi-launcher/previous-run-with-led.sh"]
     },
     {
       "id": "apple2",
