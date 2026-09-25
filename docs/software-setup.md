@@ -116,13 +116,34 @@ clean checkout of this branch.
 ### `lisa-power-button-watcher.sh`
 
 A **persistent** watcher — meant to run for the entire time the Pi is on,
-independent of whether the launcher menu or LisaEm is currently showing
-(started once, alongside `openbox`, in `system/xsession-launcher.sh`; see
-below). On each GPIO17 press:
+independent of whether the launcher menu or an emulator is currently
+showing (started once, alongside `openbox`, in
+`system/xsession-launcher.sh`; see below). On each GPIO17 press, it
+dispatches to whichever emulator (if any) is currently running:
 
-- If LisaEm is already running, it sends it F12 (shuts it down).
-- If LisaEm is not running, it launches it via `lisa-run-with-led.sh`
-  instead — the button "powers on" the Lisa.
+- **LisaEm**: sends F12 (its power-button hotkey).
+- **Basilisk II**: requests a window close. Its `SDL_QUIT` handler
+  (`src/SDL/video_sdl.cpp` in upstream `cebix/macemu`) turns that into a
+  genuine ADB Power keypress (`ADBKeyDown(0x7f)`/`ADBKeyUp(0x7f)`) —
+  classic Mac OS treats this exactly like a real Mac's power key, the
+  same as pressing it manually. Confirmed via source review
+  (2026-09-24), not guessed.
+- **Previous**: sends F10, its documented clean-shutdown key (§6).
+- **Mini vMac and LinApple**: deliberately *not* handled — the button
+  press is ignored while either is running. This fork of Mini vMac has
+  no safe host-triggerable shutdown at all (no signal handler, buffered
+  disk writes only flushed on a clean exit, and its own force-quit path
+  is documented by the emulator itself as a disk-corruption risk) —
+  shut it down from inside the guest instead. Apple II/LinApple has no
+  soft-power concept to trigger, matching real Apple II hardware.
+- **Nothing running** (the launcher menu is showing): launches LisaEm
+  via `lisa-run-with-led.sh` — the button "powers on" the Lisa.
+
+**A bare `SIGTERM`/kill to any of these processes was deliberately never
+considered as a shutdown mechanism** — for Mini vMac specifically it's
+actively unsafe (unflushed buffered disk writes), and for all of them it
+skips the guest OS's own clean-shutdown sequence, which is the whole
+point of a power button in the first place.
 
 Key detail: it sends the keypress via a plain, untargeted `xdotool key`
 (XTEST-based), relying on LisaEm already having input focus by default as
