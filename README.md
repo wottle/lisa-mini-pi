@@ -15,6 +15,28 @@ A physical GPIO power button + LED are wired up for the systems that
 support a clean button-triggered shutdown (Lisa, NeXT, Apple II) — see
 `docs/software-setup.md` §2.
 
+## Project status: work in progress
+
+The case, hardware choices, and software here all still reflect one
+specific build (Pi 4B/5, iPad 1/2 LCD panel, 1024x768). Nothing about
+that is locked in - expect breaking changes to the hardware and/or
+software as these are explored:
+
+- **An iPad 3/4 LCD panel**, for higher resolution than the current
+  iPad 1/2 panel.
+- **Fitting a Pi 5 in the case alongside a power regulation board**,
+  rather than the current external buck-converter setup.
+- **An 11.6" widescreen LCD front panel**, which would need real
+  software changes (the launcher's whole layout is currently hardcoded
+  for a fixed 1024x768 4:3 panel - see `theme.py`'s docstring) to fit
+  the Pi's actual display area into a widescreen opening correctly,
+  not just a case redesign.
+
+If you're building from this repo today, assume the specific
+combination it documents (case STLs, BOM, `provision.sh`, the 1024x768
+picker layout) rather than the abstract idea of "a Lisa Mini Pi" - any
+of it may shift under a future build.
+
 ## Setting up a new Pi
 
 ```

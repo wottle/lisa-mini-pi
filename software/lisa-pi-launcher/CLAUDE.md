@@ -184,3 +184,29 @@ shutdown — see below.
   whole time, ruling out two earlier fix attempts). Fixed with
   `SDL_MOUSE_AUTO_CAPTURE=0` in `launcher.py`, confirmed stable on real
   hardware.
+
+## Hardware directions being explored (2026-09-26, not started)
+
+The whole project (case STLs, BOM, `provision.sh`, and everything in
+this codebase sized for a fixed 1024x768 4:3 panel — see `theme.py`'s
+docstring) currently assumes one specific build: Pi 4B/5, iPad 1/2 LCD
+panel. Three changes are being explored, none started yet:
+
+- **An iPad 3/4 LCD panel** for higher resolution than the current
+  iPad 1/2 panel — would need new case geometry and likely a
+  `theme.py`/`SCREEN_WIDTH`/`SCREEN_HEIGHT` rework once a real target
+  resolution is known.
+- **Fitting a Pi 5 in the case alongside a power regulation board**,
+  replacing the current external 12V buck-converter setup — hardware
+  only, no software impact expected.
+- **An 11.6" widescreen LCD front panel** — this one *does* need real
+  software work, not just a case redesign: the picker's whole layout is
+  hardcoded for 1024x768 4:3 (`theme.py`), so fitting the Pi's actual
+  4:3-ish display area into a widescreen opening correctly (letterboxed?
+  stretched? a genuinely widescreen relayout?) is an open design
+  question, not just a resolution constant to bump.
+
+If asked to work on any of these, treat it as new exploration, not a
+small tweak to the existing fixed-1024x768 assumption baked throughout
+`theme.py` and the case files — check in on the actual direction before
+assuming which of the above (or something else) is being pursued.
