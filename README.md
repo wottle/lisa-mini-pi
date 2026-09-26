@@ -34,7 +34,10 @@ any script that calls `sudo`.
 
 ## Layout
 
-- `hardware/3d-models/` — case/enclosure 3D model files (placeholder, not yet populated).
+- `hardware/3d-models/` — case/enclosure STL files, print quantities, and
+  the two back-piece variants (with/without a physical power button).
+- `hardware/bill-of-materials.md` — everything else needed to build one:
+  the Pi, LCD panel, power supply, switch, LED, wiring.
 - `hardware/assembly/` — build/assembly instructions (placeholder, not yet populated).
 - `scripts/provision.sh` — automates the software setup below on a fresh
   Pi; see "Setting up a new Pi" above.
