@@ -12,6 +12,7 @@ different than described.
 | Part | Qty | Notes | Link |
 |---|---|---|---|
 | Raspberry Pi | 1 | Pi 4B or Pi 5 recommended (performance - see `../software/lisa-pi-launcher/CLAUDE.md` for why a Pi 3B struggles with Previous/LinApple in particular). Case mounts work at least back to a Pi 3B. | — |
+| microSD card, 32GB | 1 | Real measured usage on a fully-loaded Pi 4 (all five emulators, all disk images): 13GB used of a 29GB card (2026-09-26) - 32GB gives comfortable headroom; go 64GB if you want more margin for future growth (e.g. larger assets if the project moves to a higher-res LCD panel) or just don't want to think about it again. 16GB would be uncomfortably tight. | — |
 | iPad 1/2 LCD panel + controller board | 1 | "Type 2 with LCD" listing appears to be the correct fit. | [AliExpress](https://www.aliexpress.us/item/3256801532761537.html) |
 | 12V→5V buck converter | 1 | Powers the Pi from the same 12V supply as the LCD. | [Amazon](https://a.co/d/07PxophW) |
 | 12V 5A power supply | 1 | Powers the buck converter (→ Pi) and the LCD controller board. | — (any reputable 12V/5A barrel-jack supply) |
