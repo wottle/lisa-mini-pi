@@ -10,6 +10,8 @@ Not yet populated. In the meantime:
   supply, switch, LED, wiring).
 - `../../docs/software-setup.md` §2 — the GPIO power-button/LED wiring
   itself (exact pins, resistor placement).
+- `../pi-wiring-diagram.svg` — full wiring diagram (buck converter power,
+  switch, LED) with exact pins and resistor values.
 
 Photos still needed once a build is done: printed parts laid out before
 assembly; a labeled GPIO wiring close-up (this is the single most

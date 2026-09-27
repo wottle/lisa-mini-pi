@@ -88,12 +88,25 @@ F12 keypress.
 
 ## 2. GPIO power button and LED
 
+Full pinout diagram: `hardware/pi-wiring-diagram.svg` (also covers the
+buck-converter power wiring below).
+
 Hardware wiring:
 
-- **LED** (status/power indicator): GPIO18, driven directly as an output.
-- **Power button switch**: 3.3V → resistor (~1kΩ) → switch → GPIO17,
-  configured as an input with the internal pull-down enabled, so it reads
-  a clean low when open and high when the switch closes.
+- **Pi power**: the 12V→5V buck converter's output feeds the Pi directly
+  through the GPIO header — 5V into **Pin 2**, ground into **Pin 6** —
+  not through the USB-C/micro-USB port. This bypasses the Pi's USB input
+  protection, so the supply must be a clean, regulated 5V/3A+ source, and
+  **USB power must never be connected at the same time** as GPIO power.
+- **LED** (status/power indicator): 3.3V logic from GPIO18 (**Pin 12**) →
+  resistor (330Ω) → LED → GND (**Pin 14**), GPIO18 driven directly as an
+  output (high = on). 330Ω limits LED current to roughly 4mA at 3.3V for
+  a typical LED — recalculate if using a different LED's forward voltage/
+  current rating.
+- **Power button switch**: 3.3V (**Pin 1**) → resistor (330Ω) → switch →
+  GPIO17 (**Pin 11**), configured as an input with the internal
+  pull-down enabled, so it reads a clean low when open and high when the
+  switch closes (pressed).
 
 ```bash
 pinctrl set 18 op dl      # LED off by default
