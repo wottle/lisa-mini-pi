@@ -25,3 +25,27 @@ see the main README's "Project status" for detail.
 
 Assembly instructions (fitting the LCD, wiring the power button, closing
 the case) live in `../assembly/README.md`.
+
+## Printing notes
+
+General starting-point settings, carried over from the same builder's
+[LisaFPGA case](https://github.com/wottle/lisa-mini/blob/main/docs/PRINTING.md)
+(a different, larger case design, but the material and general settings
+transfer):
+
+| Setting | Value |
+|---|---|
+| Wall thickness | ~2.4mm (2 perimeters at 0.4mm nozzle, or adjust to match) |
+| Infill | 15–20% |
+| Layer height | 0.2mm for most parts; 0.12mm with ironing enabled for `Lisa-Mini-Pi_Lisa-Badge.stl`/`Lisa-Mini-Pi_Blank-Small-Badge.stl` (surface quality on a flat visible logo plate) |
+| Material | [Polar Filament Retro Platinum PLA](https://polarfilament.com/products/retro-platinum-pla-1kg-1-75mm) — metallic silver/platinum finish for a classic-computing look; no warping issues on the LisaFPGA case's large front/back shells with this filament |
+
+**Not yet verified for this specific case's parts** (unlike the settings
+above, which are safe general-purpose starting points): per-part print
+orientation, which parts need supports, and the actual bed size required
+- `Lisa-Mini-Pi_All-Plates.3mf` already lays every part out on build
+plates, so opening that in your slicer is the fastest way to get real
+orientation/plating without guessing. If you print from scratch and
+learn anything worth recording here (a part that needs supports, an
+orientation that avoided them, the bed size the `.3mf` plates assume),
+please contribute it back.
