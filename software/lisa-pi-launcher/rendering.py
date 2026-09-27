@@ -17,7 +17,6 @@ _FOOTER_LEFT = "< > SELECT"
 _FOOTER_CENTER = "RETURN OR CLICK TO START"
 _FOOTER_SHUTDOWN = "S SHUT DOWN"
 _FOOTER_QUIT = "Q QUIT"
-_FOOTER_ACTION_GAP = "   "
 
 # Cache for the checkerboard: it's fully deterministic for a given surface
 # size, so it's built once and blitted from then on rather than redrawing
@@ -158,44 +157,136 @@ def hit_test(items: list[ItemVisual], point: tuple[int, int]) -> int | None:
 
 
 def _footer_y(interior: pygame.Rect, row_count: int) -> int:
-    """Y coordinate (screen space) of the footer text row - shared by
-    render_frame() (drawing) and footer_layout() (hit-testing) so they
-    can never drift apart, the same way _grid_top()/item_layout() are
-    shared for the item cards above."""
+    """Y coordinate (screen space) of the footer text row - the same
+    formula render_frame uses to actually draw it, factored out so
+    footer_layout() (hit-testing/hover) can never drift from it."""
     grid_bottom = _grid_top(interior) + row_count * theme.ITEM_ROW_HEIGHT + max(0, row_count - 1) * theme.ITEMS_ROW_GAP
     second_rule_y = grid_bottom + theme.GRID_TO_RULE_GAP
     return second_rule_y + theme.RULE_THICKNESS + theme.RULE_TO_FOOTER_GAP
 
 
+def _footer_button_rect(label: str, right_x: int, top_y: int) -> pygame.Rect:
+    """A footer button's rect (SHUT DOWN or QUIT), in screen coordinates,
+    padded around its text (FOOTER_BUTTON_PADDING) so the hover/click
+    target is bigger than the glyphs themselves - the padding is
+    symmetric, so the *text* still ends up right-edge-anchored at
+    `right_x` and top-anchored at `top_y`, exactly where an unpadded
+    label would have gone. Pure layout math, shared by drawing and
+    hit-testing (see footer_layout)."""
+    pad = theme.FOOTER_BUTTON_PADDING
+    size = text_size(label, scale=theme.FONT_SCALE)
+    rect = pygame.Rect(0, 0, size[0] + 2 * pad, size[1] + 2 * pad)
+    rect.right = right_x + pad
+    rect.top = top_y - pad
+    return rect
+
+
 def footer_layout(items: list[ItemVisual]) -> dict[str, pygame.Rect]:
-    """The clickable "S SHUT DOWN" and "Q QUIT" footer rects, in screen
-    coordinates, in the same positions render_frame actually draws them
-    at - used both for drawing and for mouse hit-testing (see
-    hit_test_footer). Both are right-aligned as a single block, same as
-    the old combined footer string was, so the quit text always sits at
-    the panel's right edge and the shutdown text sits just left of it."""
+    """SHUT DOWN/QUIT button rects, in screen coordinates, in the same
+    positions render_frame actually draws them at - used both for
+    drawing (hover highlight) and for mouse hit-testing (see
+    footer_hit_test)."""
     row_count = _row_count(len(items))
     interior = panel_interior_rect(row_count=row_count)
     footer_y = _footer_y(interior, row_count)
-
-    quit_size = text_size(_FOOTER_QUIT, scale=theme.FONT_SCALE)
-    gap_size = text_size(_FOOTER_ACTION_GAP, scale=theme.FONT_SCALE)
-    shutdown_size = text_size(_FOOTER_SHUTDOWN, scale=theme.FONT_SCALE)
-
-    quit_rect = pygame.Rect(interior.right - quit_size[0], footer_y, *quit_size)
-    shutdown_rect = pygame.Rect(
-        quit_rect.left - gap_size[0] - shutdown_size[0], footer_y, *shutdown_size,
-    )
+    quit_rect = _footer_button_rect(_FOOTER_QUIT, interior.right, footer_y)
+    shutdown_rect = _footer_button_rect(_FOOTER_SHUTDOWN, quit_rect.left - theme.FOOTER_BUTTON_GAP, footer_y)
     return {"shutdown": shutdown_rect, "quit": quit_rect}
 
 
-def hit_test_footer(items: list[ItemVisual], point: tuple[int, int]) -> str | None:
-    """Returns "shutdown", "quit", or None, depending on whether `point`
-    (screen coordinates) is over one of the clickable footer actions."""
+def footer_hit_test(items: list[ItemVisual], point: tuple[int, int]) -> str | None:
+    """Returns "shutdown", "quit", or None - used to turn a mouse
+    position into a footer button action, mirroring hit_test() for the
+    system grid."""
     for name, rect in footer_layout(items).items():
         if rect.collidepoint(point):
             return name
     return None
+
+
+_CONFIRMATION_MESSAGES = {
+    "shutdown": "SHUT DOWN THE PI?",
+    "quit": "QUIT TO DESKTOP?",
+}
+
+
+def confirmation_message(action: str) -> str:
+    return _CONFIRMATION_MESSAGES[action]
+
+
+def _confirm_dialog_rect() -> pygame.Rect:
+    rect = pygame.Rect(0, 0, theme.CONFIRM_DIALOG_WIDTH, theme.CONFIRM_DIALOG_HEIGHT)
+    rect.center = (theme.SCREEN_WIDTH // 2, theme.SCREEN_HEIGHT // 2)
+    return rect
+
+
+def _confirm_button_rect(label: str, center_x: int, center_y: int) -> pygame.Rect:
+    """A CONFIRM/CANCEL button's rect, in screen coordinates, padded
+    around its text so the click/hover target is bigger than the glyphs
+    themselves. Pure layout math, shared by drawing and hit-testing (see
+    confirmation_button_layout)."""
+    size = text_size(label, scale=theme.FONT_SCALE)
+    rect = pygame.Rect(0, 0, size[0] + 2 * theme.CONFIRM_BUTTON_PADDING, size[1] + 2 * theme.CONFIRM_BUTTON_PADDING)
+    rect.center = (center_x, center_y)
+    return rect
+
+
+def confirmation_button_layout() -> dict[str, pygame.Rect]:
+    """CONFIRM/CANCEL button rects, in screen coordinates, in the same
+    positions draw_confirmation_dialog actually draws them at - used both
+    for drawing (hover highlight) and for mouse hit-testing (see
+    confirmation_hit_test)."""
+    dialog = _confirm_dialog_rect()
+    button_y = dialog.bottom - theme.CONFIRM_DIALOG_BUTTONS_BOTTOM_GAP
+    confirm_width = text_size("CONFIRM", scale=theme.FONT_SCALE)[0] + 2 * theme.CONFIRM_BUTTON_PADDING
+    cancel_width = text_size("CANCEL", scale=theme.FONT_SCALE)[0] + 2 * theme.CONFIRM_BUTTON_PADDING
+    total_width = confirm_width + theme.CONFIRM_BUTTON_GAP + cancel_width
+    confirm_center_x = dialog.centerx - total_width // 2 + confirm_width // 2
+    cancel_center_x = confirm_center_x + confirm_width // 2 + theme.CONFIRM_BUTTON_GAP + cancel_width // 2
+    return {
+        "confirm": _confirm_button_rect("CONFIRM", confirm_center_x, button_y),
+        "cancel": _confirm_button_rect("CANCEL", cancel_center_x, button_y),
+    }
+
+
+def confirmation_hit_test(point: tuple[int, int]) -> str | None:
+    """Returns "confirm", "cancel", or None - used to turn a mouse
+    position into a confirmation-dialog action."""
+    for name, rect in confirmation_button_layout().items():
+        if rect.collidepoint(point):
+            return name
+    return None
+
+
+def draw_confirmation_dialog(surface: pygame.Surface, action: str, hovered: str | None = None) -> None:
+    """Draws the SHUT DOWN/QUIT confirmation dialog directly onto
+    `surface`, replacing the normal picker frame while
+    Phase.CONFIRMING - see launcher.py's main loop."""
+    dialog = _confirm_dialog_rect()
+    shadow_rect = dialog.move(theme.SHADOW_OFFSET, theme.SHADOW_OFFSET)
+    surface.fill(_BLACK, shadow_rect)
+    surface.fill(_WHITE, dialog)
+    pygame.draw.rect(surface, _BLACK, dialog, width=1)
+
+    message = confirmation_message(action)
+    message_size = text_size(message, scale=theme.FONT_SCALE)
+    message_rect = pygame.Rect(0, 0, *message_size)
+    message_rect.centerx = dialog.centerx
+    message_rect.top = dialog.top + theme.CONFIRM_DIALOG_MESSAGE_TOP_GAP
+    render_text(surface, message, message_rect.left, message_rect.top, scale=theme.FONT_SCALE, color=_BLACK)
+
+    buttons = confirmation_button_layout()
+    for name, label in (("confirm", "CONFIRM"), ("cancel", "CANCEL")):
+        rect = buttons[name]
+        is_hot = hovered == name
+        fg = _WHITE if is_hot else _BLACK
+        if is_hot:
+            surface.fill(_BLACK, rect)
+        pygame.draw.rect(surface, _BLACK, rect, width=1)
+        label_size = text_size(label, scale=theme.FONT_SCALE)
+        label_rect = pygame.Rect(0, 0, *label_size)
+        label_rect.center = rect.center
+        render_text(surface, label, label_rect.left, label_rect.top, scale=theme.FONT_SCALE, color=fg)
 
 
 def draw_item(surface: pygame.Surface, center_x: int, top_y: int, item: ItemVisual) -> None:
@@ -267,7 +358,12 @@ def _draw_rule(surface: pygame.Surface, interior: pygame.Rect, y: int) -> None:
     surface.fill(_BLACK, pygame.Rect(interior.left, y, interior.width, theme.RULE_THICKNESS))
 
 
-def render_frame(surface: pygame.Surface, header_text: str, items: list[ItemVisual]) -> None:
+def render_frame(
+    surface: pygame.Surface,
+    header_text: str,
+    items: list[ItemVisual],
+    hovered_footer: str | None = None,
+) -> None:
     """Draws one full frame directly onto `surface` (the real screen).
     Callers are expected to have already drawn the checkerboard
     (draw_checkerboard_cached) - everything here is opaque and simply
@@ -289,19 +385,20 @@ def render_frame(surface: pygame.Surface, header_text: str, items: list[ItemVisu
     second_rule_y = grid_bottom + theme.GRID_TO_RULE_GAP
     _draw_rule(surface, interior, second_rule_y)
 
-    footer_y = _footer_y(interior, row_count)
+    footer_y = second_rule_y + theme.RULE_THICKNESS + theme.RULE_TO_FOOTER_GAP
     render_text(surface, _FOOTER_LEFT, interior.left, footer_y, scale=theme.FONT_SCALE, color=_BLACK)
     center_size = text_size(_FOOTER_CENTER, scale=theme.FONT_SCALE)
     render_text(
         surface, _FOOTER_CENTER, interior.centerx - center_size[0] // 2, footer_y,
         scale=theme.FONT_SCALE, color=_BLACK,
     )
-    footer_rects = footer_layout(items)
-    render_text(
-        surface, _FOOTER_SHUTDOWN, footer_rects["shutdown"].left, footer_y,
-        scale=theme.FONT_SCALE, color=_BLACK,
-    )
-    render_text(
-        surface, _FOOTER_QUIT, footer_rects["quit"].left, footer_y,
-        scale=theme.FONT_SCALE, color=_BLACK,
-    )
+
+    footer_buttons = footer_layout(items)
+    pad = theme.FOOTER_BUTTON_PADDING
+    for name, label in (("shutdown", _FOOTER_SHUTDOWN), ("quit", _FOOTER_QUIT)):
+        rect = footer_buttons[name]
+        is_hot = hovered_footer == name
+        fg = _WHITE if is_hot else _BLACK
+        if is_hot:
+            surface.fill(_BLACK, rect)
+        render_text(surface, label, rect.left + pad, rect.top + pad, scale=theme.FONT_SCALE, color=fg)

@@ -60,7 +60,15 @@ import theme
 import x11focus
 from bitmap_font import CHAR_WIDTH  # noqa: F401 (documents the font dependency)
 from config import load_config
-from rendering import ItemVisual, draw_checkerboard_cached, hit_test, hit_test_footer, render_frame
+from rendering import (
+    ItemVisual,
+    confirmation_hit_test,
+    draw_checkerboard_cached,
+    draw_confirmation_dialog,
+    footer_hit_test,
+    hit_test,
+    render_frame,
+)
 from state import LauncherState, Phase
 
 # The Lisa-style boot-diagnostic animation (CPU/MEM/I/O/EXPANSION test,
@@ -92,6 +100,7 @@ def _draw_frame(
     real_screen: pygame.Surface,
     header_text: str,
     items: list[ItemVisual],
+    hovered_footer: str | None = None,
 ) -> None:
     # The checkerboard is drawn directly onto real_screen at its own
     # native resolution (never scaled, so it never aliases/moires);
@@ -99,19 +108,24 @@ def _draw_frame(
     # this same surface - see theme.py for why there's no separate
     # logical surface scaled up to this one anymore.
     draw_checkerboard_cached(real_screen, theme.CHECKER_CELL_SIZE)
-    render_frame(real_screen, header_text, items)
+    render_frame(real_screen, header_text, items, hovered_footer=hovered_footer)
     pygame.display.flip()
 
 
-def _quit_to_desktop() -> None:
-    # Suppress the watchdog first - it doesn't know about the desktop
-    # session and would otherwise see no launcher/emulator process
-    # running and restart the kiosk out from under it within 30s.
-    # Starting lightdm.service is what actually switches sessions (see
-    # launcher.service's Conflicts=lightdm.service - starting it
-    # auto-stops us, which is why this is the last action taken here).
-    subprocess.run(["systemctl", "stop", "launcher-watchdog.timer"])
-    subprocess.run(["systemctl", "start", "lightdm.service"])
+def _draw_confirmation(
+    real_screen: pygame.Surface,
+    header_text: str,
+    items: list[ItemVisual],
+    action: str,
+    hovered: str | None,
+) -> None:
+    # The picker stays visible underneath the dialog (matches how a modal
+    # dialog normally sits over its parent window) rather than blanking
+    # the screen.
+    draw_checkerboard_cached(real_screen, theme.CHECKER_CELL_SIZE)
+    render_frame(real_screen, header_text, items)
+    draw_confirmation_dialog(real_screen, action, hovered=hovered)
+    pygame.display.flip()
 
 
 def _open_fullscreen() -> pygame.Surface:
@@ -147,7 +161,27 @@ def main() -> None:
 
     state = LauncherState(systems)
 
+    def _perform_confirmed_action(action: str) -> bool:
+        """Runs whatever S/Q used to do immediately - now only reached
+        after the user has confirmed the dialog. Returns False if the
+        main loop should stop running (the Q/quit-to-desktop case)."""
+        if action == "shutdown":
+            subprocess.run(["systemctl", "poweroff"])
+            return True
+        # action == "quit": suppress the watchdog first - it doesn't know
+        # about the desktop session and would otherwise see no
+        # launcher/emulator process running and restart the kiosk out
+        # from under it within 30s. Starting lightdm.service is what
+        # actually switches sessions (see launcher.service's
+        # Conflicts=lightdm.service - starting it auto-stops us, which is
+        # why this is the last action taken here).
+        subprocess.run(["systemctl", "stop", "launcher-watchdog.timer"])
+        subprocess.run(["systemctl", "start", "lightdm.service"])
+        return False
+
     running = True
+    hovered_footer: str | None = None
+    hovered_confirm: str | None = None
     while running:
         clock.tick(30)
 
@@ -159,61 +193,69 @@ def main() -> None:
 
             if event.type == pygame.QUIT:
                 running = False
+            elif state.phase == Phase.CONFIRMING:
+                # SHUT DOWN/QUIT are destructive/disruptive enough to need
+                # an explicit confirmation step - see the
+                # 2026-09-27 clickable-footer decision. While confirming,
+                # only RETURN/ESCAPE and the dialog's own CONFIRM/CANCEL
+                # buttons do anything; arrow keys, item clicks, etc. are
+                # ignored so a stray keypress can't launch a system or
+                # move the selection underneath the dialog.
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_RETURN:
+                        action = state.confirm_pending()
+                        hovered_confirm = None
+                        if not _perform_confirmed_action(action):
+                            running = False
+                    elif event.key == pygame.K_ESCAPE:
+                        state.cancel_pending()
+                        hovered_confirm = None
+                elif event.type == pygame.MOUSEMOTION:
+                    hovered_confirm = confirmation_hit_test(event.pos)
+                elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    choice = confirmation_hit_test(event.pos)
+                    if choice == "confirm":
+                        action = state.confirm_pending()
+                        hovered_confirm = None
+                        if not _perform_confirmed_action(action):
+                            running = False
+                    elif choice == "cancel":
+                        state.cancel_pending()
+                        hovered_confirm = None
             elif event.type == pygame.KEYDOWN:
-                if state.phase == Phase.CONFIRM_SHUTDOWN:
-                    # Y/S/RETURN confirm (S so re-pressing the same key
-                    # that opened the prompt also confirms it); any other
-                    # key backs out without powering off.
-                    if event.key in (pygame.K_y, pygame.K_s, pygame.K_RETURN):
-                        subprocess.run(["systemctl", "poweroff"])
-                    else:
-                        state.cancel()
-                elif event.key == pygame.K_LEFT:
+                if event.key == pygame.K_LEFT:
                     state.move_selection(-1)
                 elif event.key == pygame.K_RIGHT:
                     state.move_selection(1)
                 elif event.key == pygame.K_RETURN:
                     real_screen = _launch_selected(state, real_screen, icons)
                 elif event.key == pygame.K_s:
-                    state.request_shutdown()
+                    state.request_confirmation("shutdown")
+                    hovered_footer = None
                 elif event.key == pygame.K_r:
-                    # Not shown in the footer hint (only S/Q are), but
-                    # still works - see the 2026-09-25 redesign decision.
+                    # Not shown in the footer hint (only S/Q are), and
+                    # deliberately left out of the confirmation-dialog
+                    # treatment added for S/Q - see the 2026-09-27
+                    # decision to leave R exactly as it was.
                     subprocess.run(["systemctl", "reboot"])
                 elif event.key == pygame.K_q:
-                    _quit_to_desktop()
-                    running = False
+                    state.request_confirmation("quit")
+                    hovered_footer = None
             elif event.type == pygame.MOUSEMOTION:
                 # Hover selects, mirroring the arrow keys - so someone
                 # without a keyboard can see what they're about to pick
                 # before committing with a click. event.pos is already in
                 # screen coordinates, matching item_layout()/hit_test()
                 # directly now that there's no separate logical surface.
-                # Suppressed during the shutdown confirmation prompt so
-                # hovering over the (still-visible) item grid can't change
-                # the selection out from under the prompt.
-                if state.phase != Phase.CONFIRM_SHUTDOWN:
-                    index = hit_test(_system_items_visual(state, icons), event.pos)
-                    if index is not None:
-                        state.select_index(index)
+                index = hit_test(_system_items_visual(state, icons), event.pos)
+                if index is not None:
+                    state.select_index(index)
+                hovered_footer = footer_hit_test(_system_items_visual(state, icons), event.pos)
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                if state.phase == Phase.CONFIRM_SHUTDOWN:
-                    # Mirrors the keyboard: clicking the same "S SHUT
-                    # DOWN" footer text that opened the prompt confirms
-                    # it; clicking anywhere else cancels - this is what
-                    # lets a mouse-only setup both trigger and confirm a
-                    # shutdown with no keyboard at all.
-                    if hit_test_footer(_system_items_visual(state, icons), event.pos) == "shutdown":
-                        subprocess.run(["systemctl", "poweroff"])
-                    else:
-                        state.cancel()
-                    continue
-                footer_action = hit_test_footer(_system_items_visual(state, icons), event.pos)
-                if footer_action == "shutdown":
-                    state.request_shutdown()
-                elif footer_action == "quit":
-                    _quit_to_desktop()
-                    running = False
+                footer_choice = footer_hit_test(_system_items_visual(state, icons), event.pos)
+                if footer_choice is not None:
+                    state.request_confirmation(footer_choice)
+                    hovered_footer = None
                 else:
                     index = hit_test(_system_items_visual(state, icons), event.pos)
                     if index is not None:
@@ -221,7 +263,10 @@ def main() -> None:
                         real_screen = _launch_selected(state, real_screen, icons)
 
         items = _system_items_visual(state, icons)
-        _draw_frame(real_screen, state.header_text(), items)
+        if state.phase == Phase.CONFIRMING:
+            _draw_confirmation(real_screen, state.header_text(), items, state.pending_action, hovered_confirm)
+        else:
+            _draw_frame(real_screen, state.header_text(), items, hovered_footer)
 
     pygame.quit()
 

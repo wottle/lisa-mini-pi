@@ -9,7 +9,7 @@ from config import SystemEntry
 class Phase(Enum):
     SELECTING = auto()
     STARTING = auto()
-    CONFIRM_SHUTDOWN = auto()
+    CONFIRMING = auto()
 
 
 class LauncherState:
@@ -19,6 +19,7 @@ class LauncherState:
         self._systems = systems
         self._selected_index = 0
         self._phase = Phase.SELECTING
+        self._pending_action: str | None = None
 
     def move_selection(self, delta: int) -> None:
         self.select_index(self._selected_index + delta)
@@ -51,22 +52,33 @@ class LauncherState:
     def finish_starting(self) -> None:
         self._phase = Phase.SELECTING
 
-    def request_shutdown(self) -> None:
-        """Enters the confirmation phase - does not power off by itself.
-        Triggered by either the S key or a click on the footer's shutdown
-        text; the caller still has to act on confirm_shutdown()/cancel()
-        to actually run the poweroff."""
-        self._phase = Phase.CONFIRM_SHUTDOWN
+    @property
+    def pending_action(self) -> str | None:
+        return self._pending_action
 
-    def cancel(self) -> None:
-        """Backs out of the shutdown confirmation without powering off."""
+    def request_confirmation(self, action: str) -> None:
+        """Enters the CONFIRMING phase for a destructive/disruptive action
+        (e.g. "shutdown", "quit") that shouldn't happen on a single
+        keypress or click - see confirm_pending()/cancel_pending()."""
+        self._pending_action = action
+        self._phase = Phase.CONFIRMING
+
+    def confirm_pending(self) -> str:
+        """Returns the pending action so the caller can perform it, and
+        returns to SELECTING. Raises if there's nothing pending - callers
+        should only reach this from CONFIRMING."""
+        if self._pending_action is None:
+            raise ValueError("confirm_pending() called with no pending action")
+        action = self._pending_action
+        self._pending_action = None
+        self._phase = Phase.SELECTING
+        return action
+
+    def cancel_pending(self) -> None:
+        self._pending_action = None
         self._phase = Phase.SELECTING
 
     def header_text(self) -> str:
         if self._phase == Phase.STARTING:
             return f"STARTING {self.selected.name}..."
-        if self._phase == Phase.CONFIRM_SHUTDOWN:
-            # No "?" glyph in bitmap_font.py's FONT table (it silently
-            # renders blank) - phrased to avoid needing one.
-            return "SHUT DOWN - PRESS Y TO CONFIRM, ANY OTHER KEY TO CANCEL"
         return "CHOOSE YOUR ADVENTURE"

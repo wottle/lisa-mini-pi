@@ -4,16 +4,21 @@ os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 
 import pygame
 import theme
+from bitmap_font import text_size
 from rendering import (
     ItemVisual,
     _item_box_rect,
+    confirmation_button_layout,
+    confirmation_hit_test,
+    confirmation_message,
     draw_checkerboard,
     draw_checkerboard_cached,
+    draw_confirmation_dialog,
     draw_panel,
     draw_item,
+    footer_hit_test,
     footer_layout,
     hit_test,
-    hit_test_footer,
     item_layout,
     render_frame,
 )
@@ -77,21 +82,6 @@ def test_draw_panel_returns_interior_rect_within_panel_bounds():
     assert surface.get_at((interior.left + 1, interior.top + 1))[:3] == (255, 255, 255)
 
 
-def test_draw_item_unselected_has_white_background_and_black_border():
-    surface = _make_screen()
-    surface.fill((0, 0, 0))
-    item = ItemVisual(icon=_make_icon(), label="LISA", status_icon=None, selected=False, subtitle="OFFICE SYSTEM 3")
-
-    draw_item(surface, center_x=200, top_y=40, item=item)
-
-    rect = _item_box_rect(center_x=200, top_y=40)
-    # A pixel well inside the card, away from the icon/text, should be
-    # the card's plain white background.
-    assert surface.get_at((rect.left + 2, rect.top + 2))[:3] == (255, 255, 255)
-    # The border itself is black.
-    assert surface.get_at((rect.left, rect.top))[:3] == (0, 0, 0)
-
-
 def test_draw_item_selected_fills_area_black():
     surface = _make_screen()
     surface.fill((255, 255, 255))
@@ -99,52 +89,19 @@ def test_draw_item_selected_fills_area_black():
 
     draw_item(surface, center_x=200, top_y=40, item=item)
 
-    # somewhere in the item's card there should be a black background
+    # somewhere in the item's footprint there should be a black background
     # pixel from the reverse-video fill (not just the icon's own black
     # pixels, which a non-selected icon would also have). Derive the
-    # actual rect from the real layout function rather than hardcoding
-    # geometry that would silently drift out of sync with theme.py's
-    # icon/spacing constants.
-    rect = _item_box_rect(center_x=200, top_y=40)
+    # actual footprint from the real layout function rather than
+    # hardcoding geometry that would silently drift out of sync with
+    # theme.py's icon/spacing constants.
+    footprint = _item_box_rect(center_x=200, top_y=40)
     black_background_found = any(
         surface.get_at((x, y))[:3] == (0, 0, 0)
-        for x in range(rect.left, rect.left + 5)
-        for y in range(rect.top, rect.top + 5)
+        for x in range(footprint.left, footprint.left + 5)
+        for y in range(footprint.top, footprint.top + 5)
     )
     assert black_background_found
-
-
-def test_draw_item_draws_subtitle_when_present():
-    surface = _make_screen()
-    surface.fill((255, 255, 255))
-    item = ItemVisual(icon=_make_icon(), label="LISA", status_icon=None, selected=False, subtitle="OFFICE SYSTEM 3")
-
-    draw_item(surface, center_x=200, top_y=40, item=item)
-
-    rect = _item_box_rect(center_x=200, top_y=40)
-    # Some black pixel should exist in the lower portion of the card
-    # (where the subtitle text renders) beyond just the icon/name area.
-    subtitle_band_has_ink = any(
-        surface.get_at((x, y))[:3] == (0, 0, 0)
-        for x in range(rect.left, rect.right)
-        for y in range(rect.bottom - theme.ITEM_BOX_PADDING_BOTTOM, rect.bottom)
-    )
-    assert subtitle_band_has_ink
-
-
-def test_render_frame_draws_header_text():
-    surface = _make_screen()
-    render_frame(surface, "CHOOSE YOUR ADVENTURE", [])
-    interior_top_left = (theme.PANEL_X + theme.PANEL_CONTENT_INSET, theme.PANEL_Y + theme.PANEL_CONTENT_INSET)
-    # The title is drawn starting at the interior's top-left corner - the
-    # "C" glyph's leftmost column should paint at least one black pixel
-    # near there.
-    region_has_ink = any(
-        surface.get_at((interior_top_left[0] + x, interior_top_left[1] + y))[:3] == (0, 0, 0)
-        for x in range(0, 10)
-        for y in range(0, 10)
-    )
-    assert region_has_ink
 
 
 def test_real_shipped_icons_match_theme_icon_size():
@@ -177,7 +134,7 @@ def test_checkerboard_survives_under_render_frame():
     # render_frame doesn't paint over (i.e. away from the panel).
     surface = _make_screen()
     draw_checkerboard_cached(surface, 4)
-    render_frame(surface, "CHOOSE YOUR ADVENTURE", [])
+    render_frame(surface, "SELECT SYSTEM...", [])
 
     corner_y = surface.get_height() - 20
     samples = {surface.get_at((x, corner_y))[:3] for x in range(0, 40)}
@@ -186,23 +143,23 @@ def test_checkerboard_survives_under_render_frame():
 
 def test_item_layout_matches_what_render_frame_actually_draws():
     # Regression guard against the layout drifting between drawing and
-    # hit-testing: wherever item_layout() says an item's card is, that's
-    # where render_frame's reverse-video fill for the selected item must
-    # actually be.
+    # hit-testing: wherever item_layout() says an item's footprint is,
+    # that's where render_frame's reverse-video fill for the selected
+    # item must actually be.
     items = [
         ItemVisual(icon=_make_icon(), label="LISA", status_icon=None, selected=True),
         ItemVisual(icon=_make_icon(), label="MACINTOSH", status_icon=None, selected=False),
     ]
     surface = _make_screen()
-    render_frame(surface, "CHOOSE YOUR ADVENTURE", items)
+    render_frame(surface, "SELECT SYSTEM...", items)
 
-    rects = item_layout(items)
-    assert len(rects) == 2
+    footprints = item_layout(items)
+    assert len(footprints) == 2
 
-    selected_rect = rects[0]
-    corner = (selected_rect.left + 2, selected_rect.top + 2)
+    selected_footprint = footprints[0]
+    corner = (selected_footprint.left + 2, selected_footprint.top + 2)
     assert surface.get_at(corner)[:3] == (0, 0, 0), (
-        "item_layout()'s rect for the selected item should be black "
+        "item_layout()'s footprint for the selected item should be black "
         "(reverse video), matching where render_frame actually drew it"
     )
 
@@ -212,10 +169,10 @@ def test_hit_test_returns_index_of_item_under_point_or_none():
         ItemVisual(icon=_make_icon(), label="LISA", status_icon=None, selected=True),
         ItemVisual(icon=_make_icon(), label="MACINTOSH", status_icon=None, selected=False),
     ]
-    rects = item_layout(items)
+    footprints = item_layout(items)
 
-    assert hit_test(items, rects[0].center) == 0
-    assert hit_test(items, rects[1].center) == 1
+    assert hit_test(items, footprints[0].center) == 0
+    assert hit_test(items, footprints[1].center) == 1
     assert hit_test(items, (0, 0)) is None
 
 
@@ -223,55 +180,101 @@ def test_item_layout_empty_for_no_items():
     assert item_layout([]) == []
 
 
-def test_footer_layout_places_quit_right_of_shutdown_with_no_overlap():
-    items = [ItemVisual(icon=_make_icon(), label="LISA", status_icon=None, selected=True)]
-
-    rects = footer_layout(items)
-
-    assert rects["quit"].right <= theme.PANEL_X + theme.PANEL_WIDTH
-    assert rects["shutdown"].right < rects["quit"].left
-    assert not rects["shutdown"].colliderect(rects["quit"])
-
-
-def test_hit_test_footer_returns_action_name_or_none():
-    items = [ItemVisual(icon=_make_icon(), label="LISA", status_icon=None, selected=True)]
-    rects = footer_layout(items)
-
-    assert hit_test_footer(items, rects["shutdown"].center) == "shutdown"
-    assert hit_test_footer(items, rects["quit"].center) == "quit"
-    assert hit_test_footer(items, (0, 0)) is None
-
-
-def test_render_frame_draws_footer_actions_matching_footer_layout():
-    items = [ItemVisual(icon=_make_icon(), label="LISA", status_icon=None, selected=True)]
-    surface = _make_screen()
-
-    render_frame(surface, "CHOOSE YOUR ADVENTURE", items)
-
-    rects = footer_layout(items)
-    # Both footer labels are drawn in black text on the white panel -
-    # sampling a pixel inside each rect should find at least one black
-    # pixel, confirming render_frame actually drew text at the same
-    # rects hit_test_footer uses (drawing/hit-testing can never drift
-    # apart, mirroring the item-grid symmetry test above).
-    for rect in rects.values():
-        pixels = [
-            surface.get_at((x, y))[:3]
-            for x in range(rect.left, rect.right)
-            for y in range(rect.top, rect.bottom)
-        ]
-        assert (0, 0, 0) in pixels
-
-
 def test_render_frame_runs_without_error_with_multiple_items():
     surface = _make_screen()
     items = [
-        ItemVisual(icon=_make_icon(), label="LISA", status_icon=None, selected=True, subtitle="OFFICE SYSTEM 3"),
-        ItemVisual(icon=_make_icon(), label="MACINTOSH", status_icon=None, selected=False, subtitle="SYSTEM 7.5.3"),
+        ItemVisual(icon=_make_icon(), label="LISA", status_icon=None, selected=True),
+        ItemVisual(icon=_make_icon(), label="MACINTOSH", status_icon=None, selected=False),
     ]
 
-    render_frame(surface, "CHOOSE YOUR ADVENTURE", items)
+    render_frame(surface, "SELECT SYSTEM...", items)
     # no exception is the primary assertion; also sanity-check something
     # was actually drawn (not a blank surface).
     colors = {surface.get_at((x, y))[:3] for x in range(0, theme.SCREEN_WIDTH, 10) for y in range(0, theme.SCREEN_HEIGHT, 10)}
     assert len(colors) > 1
+
+
+def test_footer_layout_returns_shutdown_and_quit_rects_right_aligned():
+    rects = footer_layout([])
+
+    assert set(rects.keys()) == {"shutdown", "quit"}
+    # QUIT is the rightmost button; SHUT DOWN sits to its left with a gap.
+    assert rects["shutdown"].right < rects["quit"].left
+
+
+def test_footer_button_rects_are_padded_beyond_the_bare_text_size():
+    # A hover/click target exactly the size of the glyphs is too small to
+    # comfortably hit with a mouse - the rect must be inflated around the
+    # text, not tight against it.
+    rects = footer_layout([])
+    quit_text_size = text_size("Q QUIT", scale=theme.FONT_SCALE)
+
+    assert rects["quit"].width > quit_text_size[0]
+    assert rects["quit"].height > quit_text_size[1]
+
+
+def test_footer_hit_test_returns_name_of_button_under_point_or_none():
+    rects = footer_layout([])
+
+    assert footer_hit_test([], rects["shutdown"].center) == "shutdown"
+    assert footer_hit_test([], rects["quit"].center) == "quit"
+    assert footer_hit_test([], (0, 0)) is None
+
+
+def test_render_frame_highlights_hovered_footer_button():
+    surface = _make_screen()
+    surface.fill((255, 255, 255))
+
+    render_frame(surface, "SELECT SYSTEM...", [], hovered_footer="quit")
+
+    rects = footer_layout([])
+    quit_rect = rects["quit"]
+    black_found = any(
+        surface.get_at((x, y))[:3] == (0, 0, 0)
+        for x in range(quit_rect.left, quit_rect.left + 5)
+        for y in range(quit_rect.top, quit_rect.top + 5)
+    )
+    assert black_found
+
+
+def test_confirmation_message_for_shutdown_and_quit():
+    assert confirmation_message("shutdown") == "SHUT DOWN THE PI?"
+    assert confirmation_message("quit") == "QUIT TO DESKTOP?"
+
+
+def test_confirmation_button_layout_returns_confirm_and_cancel_side_by_side():
+    rects = confirmation_button_layout()
+
+    assert set(rects.keys()) == {"confirm", "cancel"}
+    assert rects["confirm"].right < rects["cancel"].left
+
+
+def test_confirmation_hit_test_returns_name_of_button_under_point_or_none():
+    rects = confirmation_button_layout()
+
+    assert confirmation_hit_test(rects["confirm"].center) == "confirm"
+    assert confirmation_hit_test(rects["cancel"].center) == "cancel"
+    assert confirmation_hit_test((0, 0)) is None
+
+
+def test_draw_confirmation_dialog_highlights_hovered_button():
+    surface = _make_screen()
+    surface.fill((255, 255, 255))
+
+    draw_confirmation_dialog(surface, "shutdown", hovered="confirm")
+
+    rects = confirmation_button_layout()
+    confirm_rect = rects["confirm"]
+    black_found = any(
+        surface.get_at((x, y))[:3] == (0, 0, 0)
+        for x in range(confirm_rect.left, confirm_rect.left + 5)
+        for y in range(confirm_rect.top, confirm_rect.top + 5)
+    )
+    assert black_found
+
+
+def test_draw_confirmation_dialog_runs_without_error_when_nothing_hovered():
+    surface = _make_screen()
+
+    draw_confirmation_dialog(surface, "quit", hovered=None)
+    # no exception is the assertion

@@ -82,6 +82,22 @@ RULE_TO_GRID_GAP = 24    # first rule -> card grid top
 GRID_TO_RULE_GAP = 24    # card grid bottom -> second rule
 RULE_TO_FOOTER_GAP = 16  # second rule -> footer text
 
+# SHUT DOWN/QUIT are now individually clickable buttons (not just a
+# static hint string), each with its own hover-highlight/hit-test rect.
+FOOTER_BUTTON_GAP = 24  # horizontal gap between the SHUT DOWN and QUIT buttons
+FOOTER_BUTTON_PADDING = 8  # padding around each button's text, both axes
+
+# The SHUT DOWN/QUIT confirmation dialog, a fixed-size box centered on
+# the screen (not the panel) - deliberately simple/fixed rather than
+# derived from the panel's own geometry, since it only ever shows a
+# short message and two buttons.
+CONFIRM_DIALOG_WIDTH = 480
+CONFIRM_DIALOG_HEIGHT = 200
+CONFIRM_DIALOG_MESSAGE_TOP_GAP = 40    # dialog top -> message text
+CONFIRM_DIALOG_BUTTONS_BOTTOM_GAP = 64  # dialog bottom -> buttons row
+CONFIRM_BUTTON_GAP = 48    # horizontal gap between CONFIRM and CANCEL
+CONFIRM_BUTTON_PADDING = 10  # padding around each button's text, both axes
+
 # Boot diagnostic animation timing - unused while the diagnostic phase is
 # disabled in launcher.py, kept for boot_diag.py's own tests/possible
 # future re-add.

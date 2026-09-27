@@ -101,25 +101,37 @@ def test_select_index_clamps_below_range():
     assert state.selected_index == 0
 
 
-def test_request_shutdown_moves_to_confirm_shutdown_phase():
+def test_request_confirmation_enters_confirming_phase_with_pending_action():
     state = LauncherState([LISA, MAC])
 
-    state.request_shutdown()
+    state.request_confirmation("shutdown")
 
-    assert state.phase == Phase.CONFIRM_SHUTDOWN
+    assert state.phase == Phase.CONFIRMING
+    assert state.pending_action == "shutdown"
 
 
-def test_cancel_returns_to_selecting_from_confirm_shutdown():
+def test_pending_action_is_none_while_selecting():
     state = LauncherState([LISA, MAC])
-    state.request_shutdown()
 
-    state.cancel()
+    assert state.pending_action is None
+
+
+def test_confirm_pending_returns_action_and_returns_to_selecting():
+    state = LauncherState([LISA, MAC])
+    state.request_confirmation("quit")
+
+    action = state.confirm_pending()
+
+    assert action == "quit"
+    assert state.phase == Phase.SELECTING
+    assert state.pending_action is None
+
+
+def test_cancel_pending_returns_to_selecting_without_acting():
+    state = LauncherState([LISA, MAC])
+    state.request_confirmation("shutdown")
+
+    state.cancel_pending()
 
     assert state.phase == Phase.SELECTING
-
-
-def test_header_text_while_confirming_shutdown():
-    state = LauncherState([LISA, MAC])
-    state.request_shutdown()
-
-    assert "SHUT DOWN" in state.header_text()
+    assert state.pending_action is None
