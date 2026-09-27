@@ -121,6 +121,16 @@ an agent — an agent should hand you the exact command rather than run it.
      connected devices (look for the hostname you set), then use that
      numeric address in place of `<hostname>.local`, e.g.
      `ssh pi@192.168.1.42`.
+   - **If you see `WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!`**
+     (with "someone could be eavesdropping on you" below it): this is
+     expected, not an attack, if you're re-flashing a Pi you've connected
+     to before under the same hostname — a fresh install generates a new
+     SSH host key. Remove the stale one and reconnect:
+     ```
+     ssh-keygen -R <hostname>.local
+     ssh <user>@<hostname>.local
+     ```
+     then answer `yes` to the new host-key prompt as in step 3 above.
 
 ## 2. Base packages
 
@@ -419,10 +429,17 @@ scp /path/to/your-system6.image <user>@<pi-hostname>.local:~/minivmac-final/Syst
 
 ```
 git clone https://github.com/wottle/lisa-mini-pi.git ~/lisa-mini-pi
-cd ~/lisa-mini-pi/software/lisa-pi-launcher
-python3 gen_icons.py   # generates the boot-diagnostic icons; only needed
-                        # once, or after changing theme.py's ICON_SIZE
 ```
+
+**Don't run `gen_icons.py`** — despite its own comment suggesting it's a
+harmless one-time step, it unconditionally overwrites
+`icons/{lisa,macintosh,next,apple2}.png` with basic procedurally-drawn
+placeholders, destroying the real committed icon art (confirmed on real
+hardware, 2026-09-27 — a fresh clone's real icons got clobbered down to
+~150-byte placeholders after running it). Its other output, the
+boot-diagnostic icons, is for `boot_diag.py`, a feature the 2026-09-25
+"CHOOSE YOUR ADVENTURE" redesign no longer uses at all. Only run it by
+hand if you're intentionally regenerating placeholder art from scratch.
 
 No venv on the Pi — it runs against the system `python3-pygame`/
 `python3-pil` installed in §2. Edit `config.json` to point each system's

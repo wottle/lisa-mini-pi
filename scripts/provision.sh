@@ -235,7 +235,179 @@ else
   git clone https://github.com/wottle/lisa-mini-pi.git "$LAUNCHER_REPO"
 fi
 LAUNCHER_DIR="$LAUNCHER_REPO/software/lisa-pi-launcher"
-( cd "$LAUNCHER_DIR" && python3 gen_icons.py )
+# gen_icons.py is NOT run here (2026-09-27): it unconditionally
+# overwrites icons/{lisa,macintosh,next,apple2}.png with basic
+# procedurally-drawn placeholders, clobbering the real committed icon art
+# every time it runs - confirmed destructive on a fresh clone. Its other
+# output (the boot-diagnostic icons) is for a feature (boot_diag.py) the
+# 2026-09-25 "CHOOSE YOUR ADVENTURE" redesign no longer uses at all. Only
+# run it by hand if you're intentionally regenerating placeholder art.
+
+# ---------------------------------------------------------------------
+step "8.5. Emulator config templates (LisaEm, Basilisk II, Previous)"
+# ---------------------------------------------------------------------
+# Pre-seeds each emulator's own config file with the settings this kiosk
+# needs (skinless fullscreen, correct boot device, no startup dialogs) -
+# confirmed on real hardware (2026-09-27) that this replaces the old
+# "launch once to create a default config - it'll show a ROM-missing
+# warning or a first-run dialog - then edit it" dance entirely. Every
+# path below is derived from $HOME, never a hardcoded username or
+# hostname. Skipped per-file if it already exists, so re-running this
+# script never clobbers settings you've since changed by hand. You still
+# have to place your own ROM/disk files at the paths referenced below
+# (step 1 of the final summary) - this only writes the *settings*, never
+# ROM/disk content, which this project has never redistributed.
+#
+# LisaEm's serialnumber/PRAM are deliberately left at its own built-in
+# defaults here (a blank/never-used hardware identity) rather than any
+# specific value - correct for a freshly-installed Lisa OS, but if you're
+# instead reusing an *already-established* disk image (one that's booted
+# successfully elsewhere before), it may reject this identity with
+# "Error 10738" - see docs/software-setup.md §3 for the fix (copying the
+# serialnumber/PRAM that disk already expects from wherever it last
+# booted successfully).
+
+if [ -f ~/.lisaem ]; then
+  skip "LisaEm config (found ~/.lisaem)"
+else
+  cat > ~/.lisaem <<LISAEMPREFS
+hidpi_scale=100
+soundeffects=1
+displayskins=0
+displaymode=6
+centerskinless=1
+asciikeyboard=1
+lisaconfigfile=$HOME/lisaem.conf
+throttle=16
+emutime=40
+emutick=25
+hostrefreshrate=0
+forcerefresh=0
+use_mouse_scale=0
+hidehostmouse=1
+disable_screen_dimming=1
+mousetopmenufullscreen=0
+[lisawin]
+sizey=768
+sizex=1024
+[lisaframe]
+sizey=768
+sizex=1024
+fullscreen=1
+[lisaskin]
+name=default
+LISAEMPREFS
+  cat > ~/lisaem.conf <<LISAEMCONF
+keyboardid=bf2f
+serialnumber=ff000000000000ff0000000000000000
+cheatromtests=1
+doublesided=0
+4mbmacworks=1
+ioromver=a8
+MemoryKB=1536
+no_warn_xl_rom=0
+consoletermwindow=0
+ROMFILE=$HOME/boot.ROM
+DUALPARALLELROM=
+[parallelport]
+parallelport=ProFile
+path=$HOME/lisaem-widget.dc42
+[seriala]
+connecta=
+xon=1
+parama=
+[serialb]
+connectb=
+xon=1
+paramb=
+[cardslot1]
+slot1=
+low=
+high=
+lowpath=
+highpath=
+[cardslot2]
+slot2=
+low=
+high=
+lowpath=
+highpath=
+[cardslot3]
+slot3=
+low=
+high=
+lowpath=
+highpath=
+LISAEMCONF
+  echo "    wrote ~/.lisaem, ~/lisaem.conf"
+fi
+
+if [ -f ~/.config/BasiliskII/prefs ]; then
+  skip "Basilisk II prefs (found ~/.config/BasiliskII/prefs)"
+else
+  mkdir -p ~/.config/BasiliskII
+  cat > ~/.config/BasiliskII/prefs <<BASILISKPREFS
+rom $HOME/mac-lciii.rom
+disk $HOME/macos753.image
+screen dga/1024/768
+displaycolordepth 0
+ramsize 33554432
+cpu 3
+fpu false
+nogui true
+jit false
+BASILISKPREFS
+  echo "    wrote ~/.config/BasiliskII/prefs"
+fi
+
+if [ "$SKIP_NEXT" -eq 0 ]; then
+  if [ -f ~/.config/previous/previous.cfg ]; then
+    skip "Previous config (found ~/.config/previous/previous.cfg)"
+  else
+    mkdir -p ~/.config/previous
+    cat > ~/.config/previous/previous.cfg <<PREVIOUSCFG
+[ConfigDialog]
+bShowConfigDialogAtStartup = FALSE
+
+[Boot]
+nBootDevice = 1
+bEnableDRAMTest = FALSE
+bEnablePot = TRUE
+bEnableSoundTest = TRUE
+bEnableSCSITest = FALSE
+bLoopPot = FALSE
+bVerbose = FALSE
+bExtendedPot = FALSE
+bVisible = FALSE
+
+[HardDisk]
+szImageName0 = $HOME/nextstep.dd
+nDeviceType0 = 1
+bDiskInserted0 = TRUE
+bWriteProtected0 = FALSE
+
+[System]
+nMachineType = 2
+bColor = FALSE
+bTurbo = FALSE
+bNBIC = FALSE
+bADB = FALSE
+nSCSI = TRUE
+nRTC = FALSE
+nCpuLevel = 4
+nCpuFreq = 25
+bCompatibleCpu = TRUE
+bRealtime = FALSE
+nDSPType = 2
+bDSPMemoryExpansion = TRUE
+n_FPUType = 68040
+bCompatibleFPU = TRUE
+bMMU = TRUE
+PREVIOUSCFG
+    echo "    wrote ~/.config/previous/previous.cfg (expects your NeXTSTEP"
+    echo "    disk image at $HOME/nextstep.dd)"
+  fi
+fi
 
 # ---------------------------------------------------------------------
 step "9. Openbox kiosk session config"
@@ -293,41 +465,36 @@ step "Done - manual steps still needed"
 # ---------------------------------------------------------------------
 cat <<EOF
 
-Everything installable without copyrighted assets is now in place. You
-still need to, at minimum:
+Everything installable without copyrighted assets is now in place, and
+every emulator's config is already pre-seeded (step 8.5) - no more
+"launch once to create a default config, then edit it" dance. You still
+need to, at minimum:
 
-  1. Place your own legally-obtained ROM/disk files:
-       Lisa:       ~/boot.ROM, ~/lisaem-widget.dc42
-       Basilisk II: edit ~/.config/BasiliskII/prefs (created on
-                    Basilisk II's first run) to point at your Mac ROM
-                    and a classic Mac OS disk image
-       Mini vMac:  ~/minivmac-final/MacII.ROM, ~/minivmac-final/System6.image
+  1. Place your own legally-obtained ROM/disk files at the paths the
+     pre-seeded configs already point at:
+       Lisa:        ~/boot.ROM, ~/lisaem-widget.dc42
+       Basilisk II: ~/mac-lciii.rom, ~/macos753.image
+       Mini vMac:   ~/minivmac-final/MacII.ROM, ~/minivmac-final/System6.image
 EOF
 if [ "$SKIP_NEXT" -eq 0 ]; then
 cat <<EOF
-       Previous:   your own NeXTSTEP disk image (path is chosen during
-                   its one-time interactive setup, step 3 below)
+       Previous:    ~/nextstep.dd (your own NeXTSTEP disk image)
 EOF
 fi
 cat <<EOF
-     Edit config.json in $LAUNCHER_DIR if you place any of these
-     somewhere other than the paths above.
+     If you'd rather place any of these somewhere else, edit both the
+     relevant config file (see step 8.5 above for which one) and
+     config.json in $LAUNCHER_DIR to match.
+
+     If you're instead reusing an *already-established* Lisa disk image
+     (one that's booted successfully elsewhere before, not a fresh
+     install), it may reject LisaEm's default identity with
+     "Error 10738" - see docs/software-setup.md §3 for the fix.
 
   2. Wire the physical GPIO power button/LED (see
      docs/software-setup.md §2): GPIO18 (pin 12) -> LED -> GND (e.g.
      pin 14); 3.3V (pin 1 or 17) -> resistor -> switch -> GPIO17 (pin 11).
-EOF
-if [ "$SKIP_NEXT" -eq 0 ]; then
-cat <<EOF
 
-  3. One-time interactive Previous setup (needs a keyboard at the Pi) -
-     see docs/software-setup.md §6 for the exact settings (Machine Type,
-     Boot Options, SCSI Disk, Save config) and the "Show at startup"
-     gotcha.
-EOF
-fi
-cat <<EOF
-
-  4. Reboot, and confirm it boots straight into the picker.
+  3. Reboot, and confirm it boots straight into the picker.
 
 EOF
