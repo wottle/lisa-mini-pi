@@ -1,16 +1,23 @@
-"""One-time tool: converts the provided high-resolution 1-bit pixel-art
-source icons into crisp PNGs under icons/ (theme.ICON_SIZE for system and
-boot-diagnostic icons, theme.CHECK_ICON_SIZE for the smaller "completed"
-check badge), replacing the procedurally-drawn placeholders gen_icons.py
-made for these same names. Not part of the runtime path - run directly
+"""One-time tool: converts the provided high-resolution source icons into
+crisp PNGs under icons/ (theme.ICON_SIZE for system and boot-diagnostic
+icons, theme.CHECK_ICON_SIZE for the smaller "completed" check badge),
+replacing the procedurally-drawn placeholders gen_icons.py made for these
+same names. Not part of the runtime path - run directly
 (`python3 import_icons.py <source_dir>`) whenever new source art needs
 importing.
 
-The source images are already pure black/white line art (no
-antialiasing/gradients), just at a much higher resolution than we need.
-A high-quality downscale followed by a hard black/white threshold keeps
-that purity - avoiding the gray edge pixels a naive resize would leave -
-while cleanly reducing to our target size.
+Two conversion modes (see convert_icon's `threshold` parameter):
+- Hard black/white threshold (diag icons, check.png): for source art
+  that's already pure black/white line art (no antialiasing/gradients).
+  A high-quality downscale followed by a hard threshold keeps that
+  purity - avoiding the gray edge pixels a naive resize would leave -
+  while cleanly reducing to our target size.
+- Smooth grayscale, no threshold (the main system icons as of the
+  2026-09-27 icon refresh): for source art with real tonal detail (e.g.
+  the classic Mac Finder face's two-tone shading) that a hard threshold
+  would destroy - confirmed by a direct side-by-side comparison, not
+  guessed. Still monochrome (color source art is composited/grayscaled
+  same as before), just not reduced all the way to 1-bit.
 """
 
 import sys
@@ -22,8 +29,8 @@ import theme
 _SOURCE_TO_ICON = {
     "lisa.png": "lisa.png",
     "macos7.png": "macintosh.png",
-    "macos6.png": "macintosh6.png",
-    "NeXT.png": "next.png",
+    "macos6.jpg": "macintosh6.png",
+    "next.png": "next.png",
     "appleii.png": "apple2.png",
 }
 
@@ -43,7 +50,7 @@ _CHECK_ICON = "check.png"
 _THRESHOLD = 128
 
 
-def convert_icon(source_path: str, size: int) -> Image.Image:
+def convert_icon(source_path: str, size: int, threshold: bool = True) -> Image.Image:
     image = Image.open(source_path)
     if image.mode in ("RGBA", "LA") or "transparency" in image.info:
         # Composite onto white first: this source's transparent pixels
@@ -85,17 +92,24 @@ def convert_icon(source_path: str, size: int) -> Image.Image:
             min(image.width, center_x + half_side),
             min(image.height, center_y + half_side),
         ))
-    # NEAREST, not LANCZOS: this source art is already blocky pixel art,
-    # not a smooth/photographic image, so a smoothing resample algorithm
-    # is the wrong tool - it blends soft gray edges that the hard
-    # threshold below then chops at a somewhat arbitrary boundary,
-    # producing slightly inconsistent/jagged edges compared to NEAREST
-    # (confirmed side by side at both 32px and 48px target sizes).
-    image = image.resize((size, size), Image.NEAREST)
-    # Hard-threshold back to pure black/white: even NEAREST can land
-    # exactly between two source shades at some pixels.
-    image = image.point(lambda p: 255 if p >= _THRESHOLD else 0)
-    return image.convert("1")
+    if threshold:
+        # NEAREST, not LANCZOS: this source art is already blocky pixel
+        # art, not a smooth/photographic image, so a smoothing resample
+        # algorithm is the wrong tool - it blends soft gray edges that
+        # the hard threshold below then chops at a somewhat arbitrary
+        # boundary, producing slightly inconsistent/jagged edges
+        # compared to NEAREST (confirmed side by side at both 32px and
+        # 48px target sizes).
+        image = image.resize((size, size), Image.NEAREST)
+        # Hard-threshold back to pure black/white: even NEAREST can land
+        # exactly between two source shades at some pixels.
+        image = image.point(lambda p: 255 if p >= _THRESHOLD else 0)
+        return image.convert("1")
+    # LANCZOS here, not NEAREST: this path is for source art with real
+    # tonal gradients we want to keep (see the module docstring) - a
+    # smoothing resample is the right tool for that, unlike for the
+    # blocky pixel-art path above.
+    return image.resize((size, size), Image.LANCZOS)
 
 
 def main() -> None:
@@ -107,11 +121,16 @@ def main() -> None:
     # Source art for different icon groups often lives in different
     # directories (system icons and boot-diagnostic icons were provided
     # separately) - skip whichever group's files aren't in this
-    # particular source_dir rather than aborting the whole run.
-    for source_name, icon_name in {**_SOURCE_TO_ICON, **_SOURCE_TO_DIAG_ICON}.items():
+    # particular source_dir rather than aborting the whole run. System
+    # icons use threshold=False (smooth grayscale - see module
+    # docstring); diag icons stay hard-thresholded 1-bit.
+    for source_name, icon_name, threshold in [
+        *((name, dest, False) for name, dest in _SOURCE_TO_ICON.items()),
+        *((name, dest, True) for name, dest in _SOURCE_TO_DIAG_ICON.items()),
+    ]:
         source_path = f"{source_dir}/{source_name}"
         try:
-            icon = convert_icon(source_path, theme.ICON_SIZE)
+            icon = convert_icon(source_path, theme.ICON_SIZE, threshold=threshold)
         except FileNotFoundError:
             print(f"skipped {icon_name}: {source_path} not found")
             continue
