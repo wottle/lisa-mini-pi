@@ -4,13 +4,8 @@ Step-by-step build for the iPad 1/2 LCD + external buck-converter power
 variant documented elsewhere in this repo (see `../3d-models/README.md`
 for STL files/quantities, `../bill-of-materials.md` for parts, and
 `../pi-wiring-diagram.svg` for the exact GPIO/power pinout referenced
-throughout). Confirmed on a real build, 2026-09-27.
-
-**Photos still needed** to make this easier to follow: printed parts
-before assembly; the back piece with Pi/switch/LED/buck-converter wiring
-complete; the front piece with LCD/controller board mounted; the two
-halves connected before closing; fully assembled and powered on. If
-you're doing this build, contributing those photos back would help a lot.
+throughout). Confirmed on a real build, with photos throughout,
+2026-09-27.
 
 ## 1. Back piece: mount the Pi
 
@@ -43,6 +38,10 @@ rather than forcing it.
    - Net result: flipping the rocker switch cuts power to the LCD and to
      the Pi (through the buck converter) at the same time.
 
+![Rocker switch terminals, wires soldered on and heat-shrunk](images/rocker_switch_pins_closeup.jpg)
+
+![Barrel jack and rocker switch installed, seen from outside the back piece](images/underside_of_port_cutout_with_pi_ports_and_dc_jack.jpg)
+
 ## 3. Back piece: buck converter and LCD controller power
 
 1. Screw the buck converter down onto one of the two sets of standoffs
@@ -53,6 +52,10 @@ rather than forcing it.
    barrel jack (as this build's does), terminate the other black/red
    wire pair in a barrel-jack plug and connect that to the controller
    board.
+
+![Buck converter mounted on its standoffs, input/output wires soldered on](images/buck_converter.jpg)
+
+![Back piece with Pi, buck converter, and switch/LED wiring all in place](images/Back_everything_secured_and_connected.jpg)
 
 ## 4. Back piece: power-button switch and LED
 
@@ -82,6 +85,10 @@ Wire the keyboard-switch power button and its LED per
 7. Plug the 4 Dupont wires into the GPIO pins shown in the wiring
    diagram (GPIO17/3.3V for the switch, GPIO18/GND for the LED).
 
+![Switch keycap seated in its slot, LED visible beside it](images/key_switch_LED_closeup.jpg)
+
+![Switch/LED wires routed through the case wall into the interior](images/key_switch_with_LED.jpg)
+
 ## 5. Back piece: Pi power and video
 
 1. Run two more Dupont wires from the buck converter's output to the
@@ -90,19 +97,32 @@ Wire the keyboard-switch power button and its LED per
    USB-C/micro-USB port — **never connect USB power at the same time**.
 2. Plug a micro-HDMI-to-HDMI cable into the Pi.
 
+![Switch/LED and buck-converter-power wires plugged into the Pi's GPIO header](images/PI_GPIO_pins.jpg)
+
 The back piece is now complete.
+
+![Back piece fully assembled, seen from outside](images/back_fully_assembled.jpg)
 
 ## 6. Front piece: mount the LCD panel
 
 1. One corner of the front piece's 3D print has a notch sized for the
    LCD panel's corner. Start there: slide that corner in and push the
    panel all the way toward the case's thin edge.
+
+   ![LCD panel's corner sliding into the front piece's notch](images/LCD_corner_slide_into_slot_first.jpg)
+
 2. Take a 3D-printed **side clip**, slide it over its standoff screw
    hole and over the LCD panel's edge, push it snug, then secure it with
    an M3×4mm screw.
+
+   ![Side clip screwed down over the LCD panel's edge](images/LCD_side_clip.jpg)
+
 3. Take the two 3D-printed **bottom clips** and screw each into its
    mounting block on the bottom of the case with an M3×4mm screw. The
    LCD panel should now be fully secured to the front piece.
+
+   ![Bottom clip #1 screwed into place](images/LCD_bottom_clip1.jpg)
+   ![Bottom clip #2 screwed into place](images/LCD_bottom_clip2.jpg)
 
 ## 7. Front piece: mount the controller board(s)
 
@@ -114,15 +134,28 @@ The back piece is now complete.
    pinning down an auxiliary board's wiring if it doesn't have its own
    mounting holes.
 
+![LCD controller board secured, ribbon cable connected](images/LCD_controller_board_secured.jpg)
+
+![Optional button board (SOURCE/MENU/POWER) secured](images/LCD_button_board_secured.jpg)
+
+![Front piece with LCD, controller board, and button board all secured](images/front_panel_all_components_secure.jpg)
+
 ## 8. Join the two halves and close the case
 
 1. Bring the two wires from the back piece (HDMI, and the 12V DC power
    pigtail from step 3) up to the front piece and plug them into the
    controller board.
+
+   ![Back and front pieces, before connecting](images/two_halves_wires_disconnected.jpg)
+   ![Back and front pieces, HDMI and power connected](images/two_halves_wires_connected.jpg)
+
 2. Tuck the connected wires into the case, then press-fit the front
    piece onto the back piece. (You can also test everything before
    snapping them together — the fit comes apart easily if you need to
    get back in.)
+
+   ![Front and back pieces being press-fit together](images/parts_being_press_fit_together.jpg)
+
 3. Push the 3D-printed keycap over the power button switch/LED.
 
 The unit is now fully assembled.
@@ -136,6 +169,8 @@ The unit is now fully assembled.
 Confirm it boots the way `docs/software-setup.md` §7's "Verifying the
 round trip" describes (straight into the picker, no login prompt) before
 buttoning up anything further.
+
+![Fully assembled Lisa Mini Pi, booting](images/front_fully_assembled.jpg)
 
 ## Future revision being explored: iPad 3/4 panel + Pi 5 dual-power board
 
