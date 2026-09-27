@@ -1,5 +1,7 @@
 # Lisa Mini Pi
 
+![Lisa Mini Pi booting, sitting atop a real Apple Lisa](docs/images/hero.jpg)
+
 A Raspberry Pi in a 3D-printed Apple Lisa-shaped case with a 1024x768 HDMI
 LCD panel, booting straight into a "CHOOSE YOUR ADVENTURE" kiosk launcher
 that lets you pick which vintage system to run:
