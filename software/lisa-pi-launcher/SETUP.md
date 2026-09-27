@@ -51,6 +51,11 @@ an agent — an agent should hand you the exact command rather than run it.
   installed and a microSD card reader (built-in or USB), to flash the card
   before it ever goes in the Pi.
 
+The physical GPIO power-button/LED wiring isn't covered in this file —
+see `../../docs/software-setup.md` §2, and
+`../../hardware/pi-wiring-diagram.svg` for the full pinout (buck
+converter power, switch, LED).
+
 ## 1. Flash the OS
 
 1. Insert the microSD card into your computer's reader and open Raspberry

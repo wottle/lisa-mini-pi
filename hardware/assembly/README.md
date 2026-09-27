@@ -113,19 +113,26 @@ The back piece is now complete.
 
 ## 6. Front piece: mount the LCD panel
 
-1. One corner of the front piece's 3D print has a notch sized for the
+1. Check the LCD panel's edges first: many iPad LCD panels have small
+   metal screw-down tabs sticking out on three sides (visible in the
+   corner shot below). These may not sit flush enough for the panel to
+   fit the case as printed - if not, bend the tabs flat against the
+   panel's edge, or trim them off with wire snips (watch for sharp edges
+   if you cut). Better to find this out now than after step 3's clip is
+   already screwed down.
+2. One corner of the front piece's 3D print has a notch sized for the
    LCD panel's corner. Start there: slide that corner in and push the
    panel all the way toward the case's thin edge.
 
-   ![LCD panel's corner sliding into the front piece's notch](images/LCD_corner_slide_into_slot_first.jpg)
+   ![LCD panel's corner sliding into the front piece's notch - note the metal screw-down tab visible on this edge](images/LCD_corner_slide_into_slot_first.jpg)
 
-2. Take a 3D-printed **side clip**, slide it over its standoff screw
+3. Take a 3D-printed **side clip**, slide it over its standoff screw
    hole and over the LCD panel's edge, push it snug, then secure it with
    an M3×4mm screw.
 
    ![Side clip screwed down over the LCD panel's edge](images/LCD_side_clip.jpg)
 
-3. Take the two 3D-printed **bottom clips** and screw each into its
+4. Take the two 3D-printed **bottom clips** and screw each into its
    mounting block on the bottom of the case with an M3×4mm screw. The
    LCD panel should now be fully secured to the front piece.
 
