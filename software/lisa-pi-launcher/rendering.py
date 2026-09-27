@@ -15,7 +15,9 @@ _WHITE = (255, 255, 255)
 
 _FOOTER_LEFT = "< > SELECT"
 _FOOTER_CENTER = "RETURN OR CLICK TO START"
-_FOOTER_RIGHT = "S SHUT DOWN   Q QUIT"
+_FOOTER_SHUTDOWN = "S SHUT DOWN"
+_FOOTER_QUIT = "Q QUIT"
+_FOOTER_ACTION_GAP = "   "
 
 # Cache for the checkerboard: it's fully deterministic for a given surface
 # size, so it's built once and blitted from then on rather than redrawing
@@ -155,6 +157,47 @@ def hit_test(items: list[ItemVisual], point: tuple[int, int]) -> int | None:
     return None
 
 
+def _footer_y(interior: pygame.Rect, row_count: int) -> int:
+    """Y coordinate (screen space) of the footer text row - shared by
+    render_frame() (drawing) and footer_layout() (hit-testing) so they
+    can never drift apart, the same way _grid_top()/item_layout() are
+    shared for the item cards above."""
+    grid_bottom = _grid_top(interior) + row_count * theme.ITEM_ROW_HEIGHT + max(0, row_count - 1) * theme.ITEMS_ROW_GAP
+    second_rule_y = grid_bottom + theme.GRID_TO_RULE_GAP
+    return second_rule_y + theme.RULE_THICKNESS + theme.RULE_TO_FOOTER_GAP
+
+
+def footer_layout(items: list[ItemVisual]) -> dict[str, pygame.Rect]:
+    """The clickable "S SHUT DOWN" and "Q QUIT" footer rects, in screen
+    coordinates, in the same positions render_frame actually draws them
+    at - used both for drawing and for mouse hit-testing (see
+    hit_test_footer). Both are right-aligned as a single block, same as
+    the old combined footer string was, so the quit text always sits at
+    the panel's right edge and the shutdown text sits just left of it."""
+    row_count = _row_count(len(items))
+    interior = panel_interior_rect(row_count=row_count)
+    footer_y = _footer_y(interior, row_count)
+
+    quit_size = text_size(_FOOTER_QUIT, scale=theme.FONT_SCALE)
+    gap_size = text_size(_FOOTER_ACTION_GAP, scale=theme.FONT_SCALE)
+    shutdown_size = text_size(_FOOTER_SHUTDOWN, scale=theme.FONT_SCALE)
+
+    quit_rect = pygame.Rect(interior.right - quit_size[0], footer_y, *quit_size)
+    shutdown_rect = pygame.Rect(
+        quit_rect.left - gap_size[0] - shutdown_size[0], footer_y, *shutdown_size,
+    )
+    return {"shutdown": shutdown_rect, "quit": quit_rect}
+
+
+def hit_test_footer(items: list[ItemVisual], point: tuple[int, int]) -> str | None:
+    """Returns "shutdown", "quit", or None, depending on whether `point`
+    (screen coordinates) is over one of the clickable footer actions."""
+    for name, rect in footer_layout(items).items():
+        if rect.collidepoint(point):
+            return name
+    return None
+
+
 def draw_item(surface: pygame.Surface, center_x: int, top_y: int, item: ItemVisual) -> None:
     rect = _item_box_rect(center_x, top_y)
 
@@ -246,15 +289,19 @@ def render_frame(surface: pygame.Surface, header_text: str, items: list[ItemVisu
     second_rule_y = grid_bottom + theme.GRID_TO_RULE_GAP
     _draw_rule(surface, interior, second_rule_y)
 
-    footer_y = second_rule_y + theme.RULE_THICKNESS + theme.RULE_TO_FOOTER_GAP
+    footer_y = _footer_y(interior, row_count)
     render_text(surface, _FOOTER_LEFT, interior.left, footer_y, scale=theme.FONT_SCALE, color=_BLACK)
     center_size = text_size(_FOOTER_CENTER, scale=theme.FONT_SCALE)
     render_text(
         surface, _FOOTER_CENTER, interior.centerx - center_size[0] // 2, footer_y,
         scale=theme.FONT_SCALE, color=_BLACK,
     )
-    right_size = text_size(_FOOTER_RIGHT, scale=theme.FONT_SCALE)
+    footer_rects = footer_layout(items)
     render_text(
-        surface, _FOOTER_RIGHT, interior.right - right_size[0], footer_y,
+        surface, _FOOTER_SHUTDOWN, footer_rects["shutdown"].left, footer_y,
+        scale=theme.FONT_SCALE, color=_BLACK,
+    )
+    render_text(
+        surface, _FOOTER_QUIT, footer_rects["quit"].left, footer_y,
         scale=theme.FONT_SCALE, color=_BLACK,
     )

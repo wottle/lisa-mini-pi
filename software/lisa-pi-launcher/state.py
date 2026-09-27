@@ -9,6 +9,7 @@ from config import SystemEntry
 class Phase(Enum):
     SELECTING = auto()
     STARTING = auto()
+    CONFIRM_SHUTDOWN = auto()
 
 
 class LauncherState:
@@ -50,7 +51,22 @@ class LauncherState:
     def finish_starting(self) -> None:
         self._phase = Phase.SELECTING
 
+    def request_shutdown(self) -> None:
+        """Enters the confirmation phase - does not power off by itself.
+        Triggered by either the S key or a click on the footer's shutdown
+        text; the caller still has to act on confirm_shutdown()/cancel()
+        to actually run the poweroff."""
+        self._phase = Phase.CONFIRM_SHUTDOWN
+
+    def cancel(self) -> None:
+        """Backs out of the shutdown confirmation without powering off."""
+        self._phase = Phase.SELECTING
+
     def header_text(self) -> str:
         if self._phase == Phase.STARTING:
             return f"STARTING {self.selected.name}..."
+        if self._phase == Phase.CONFIRM_SHUTDOWN:
+            # No "?" glyph in bitmap_font.py's FONT table (it silently
+            # renders blank) - phrased to avoid needing one.
+            return "SHUT DOWN - PRESS Y TO CONFIRM, ANY OTHER KEY TO CANCEL"
         return "CHOOSE YOUR ADVENTURE"

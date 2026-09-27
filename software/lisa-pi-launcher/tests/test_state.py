@@ -99,3 +99,27 @@ def test_select_index_clamps_below_range():
     state.select_index(-3)
 
     assert state.selected_index == 0
+
+
+def test_request_shutdown_moves_to_confirm_shutdown_phase():
+    state = LauncherState([LISA, MAC])
+
+    state.request_shutdown()
+
+    assert state.phase == Phase.CONFIRM_SHUTDOWN
+
+
+def test_cancel_returns_to_selecting_from_confirm_shutdown():
+    state = LauncherState([LISA, MAC])
+    state.request_shutdown()
+
+    state.cancel()
+
+    assert state.phase == Phase.SELECTING
+
+
+def test_header_text_while_confirming_shutdown():
+    state = LauncherState([LISA, MAC])
+    state.request_shutdown()
+
+    assert "SHUT DOWN" in state.header_text()

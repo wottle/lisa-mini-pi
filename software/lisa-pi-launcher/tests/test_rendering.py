@@ -11,7 +11,9 @@ from rendering import (
     draw_checkerboard_cached,
     draw_panel,
     draw_item,
+    footer_layout,
     hit_test,
+    hit_test_footer,
     item_layout,
     render_frame,
 )
@@ -219,6 +221,46 @@ def test_hit_test_returns_index_of_item_under_point_or_none():
 
 def test_item_layout_empty_for_no_items():
     assert item_layout([]) == []
+
+
+def test_footer_layout_places_quit_right_of_shutdown_with_no_overlap():
+    items = [ItemVisual(icon=_make_icon(), label="LISA", status_icon=None, selected=True)]
+
+    rects = footer_layout(items)
+
+    assert rects["quit"].right <= theme.PANEL_X + theme.PANEL_WIDTH
+    assert rects["shutdown"].right < rects["quit"].left
+    assert not rects["shutdown"].colliderect(rects["quit"])
+
+
+def test_hit_test_footer_returns_action_name_or_none():
+    items = [ItemVisual(icon=_make_icon(), label="LISA", status_icon=None, selected=True)]
+    rects = footer_layout(items)
+
+    assert hit_test_footer(items, rects["shutdown"].center) == "shutdown"
+    assert hit_test_footer(items, rects["quit"].center) == "quit"
+    assert hit_test_footer(items, (0, 0)) is None
+
+
+def test_render_frame_draws_footer_actions_matching_footer_layout():
+    items = [ItemVisual(icon=_make_icon(), label="LISA", status_icon=None, selected=True)]
+    surface = _make_screen()
+
+    render_frame(surface, "CHOOSE YOUR ADVENTURE", items)
+
+    rects = footer_layout(items)
+    # Both footer labels are drawn in black text on the white panel -
+    # sampling a pixel inside each rect should find at least one black
+    # pixel, confirming render_frame actually drew text at the same
+    # rects hit_test_footer uses (drawing/hit-testing can never drift
+    # apart, mirroring the item-grid symmetry test above).
+    for rect in rects.values():
+        pixels = [
+            surface.get_at((x, y))[:3]
+            for x in range(rect.left, rect.right)
+            for y in range(rect.top, rect.bottom)
+        ]
+        assert (0, 0, 0) in pixels
 
 
 def test_render_frame_runs_without_error_with_multiple_items():

@@ -60,7 +60,7 @@ import theme
 import x11focus
 from bitmap_font import CHAR_WIDTH  # noqa: F401 (documents the font dependency)
 from config import load_config
-from rendering import ItemVisual, draw_checkerboard_cached, hit_test, render_frame
+from rendering import ItemVisual, draw_checkerboard_cached, hit_test, hit_test_footer, render_frame
 from state import LauncherState, Phase
 
 # The Lisa-style boot-diagnostic animation (CPU/MEM/I/O/EXPANSION test,
@@ -101,6 +101,17 @@ def _draw_frame(
     draw_checkerboard_cached(real_screen, theme.CHECKER_CELL_SIZE)
     render_frame(real_screen, header_text, items)
     pygame.display.flip()
+
+
+def _quit_to_desktop() -> None:
+    # Suppress the watchdog first - it doesn't know about the desktop
+    # session and would otherwise see no launcher/emulator process
+    # running and restart the kiosk out from under it within 30s.
+    # Starting lightdm.service is what actually switches sessions (see
+    # launcher.service's Conflicts=lightdm.service - starting it
+    # auto-stops us, which is why this is the last action taken here).
+    subprocess.run(["systemctl", "stop", "launcher-watchdog.timer"])
+    subprocess.run(["systemctl", "start", "lightdm.service"])
 
 
 def _open_fullscreen() -> pygame.Surface:
@@ -149,29 +160,28 @@ def main() -> None:
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_LEFT:
+                if state.phase == Phase.CONFIRM_SHUTDOWN:
+                    # Y/S/RETURN confirm (S so re-pressing the same key
+                    # that opened the prompt also confirms it); any other
+                    # key backs out without powering off.
+                    if event.key in (pygame.K_y, pygame.K_s, pygame.K_RETURN):
+                        subprocess.run(["systemctl", "poweroff"])
+                    else:
+                        state.cancel()
+                elif event.key == pygame.K_LEFT:
                     state.move_selection(-1)
                 elif event.key == pygame.K_RIGHT:
                     state.move_selection(1)
                 elif event.key == pygame.K_RETURN:
                     real_screen = _launch_selected(state, real_screen, icons)
                 elif event.key == pygame.K_s:
-                    subprocess.run(["systemctl", "poweroff"])
+                    state.request_shutdown()
                 elif event.key == pygame.K_r:
                     # Not shown in the footer hint (only S/Q are), but
                     # still works - see the 2026-09-25 redesign decision.
                     subprocess.run(["systemctl", "reboot"])
                 elif event.key == pygame.K_q:
-                    # Suppress the watchdog first - it doesn't know about
-                    # the desktop session and would otherwise see no
-                    # launcher/emulator process running and restart the
-                    # kiosk out from under it within 30s. Starting
-                    # lightdm.service is what actually switches sessions
-                    # (see launcher.service's Conflicts=lightdm.service -
-                    # starting it auto-stops us, which is why this is the
-                    # last action taken here).
-                    subprocess.run(["systemctl", "stop", "launcher-watchdog.timer"])
-                    subprocess.run(["systemctl", "start", "lightdm.service"])
+                    _quit_to_desktop()
                     running = False
             elif event.type == pygame.MOUSEMOTION:
                 # Hover selects, mirroring the arrow keys - so someone
@@ -179,14 +189,36 @@ def main() -> None:
                 # before committing with a click. event.pos is already in
                 # screen coordinates, matching item_layout()/hit_test()
                 # directly now that there's no separate logical surface.
-                index = hit_test(_system_items_visual(state, icons), event.pos)
-                if index is not None:
-                    state.select_index(index)
+                # Suppressed during the shutdown confirmation prompt so
+                # hovering over the (still-visible) item grid can't change
+                # the selection out from under the prompt.
+                if state.phase != Phase.CONFIRM_SHUTDOWN:
+                    index = hit_test(_system_items_visual(state, icons), event.pos)
+                    if index is not None:
+                        state.select_index(index)
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                index = hit_test(_system_items_visual(state, icons), event.pos)
-                if index is not None:
-                    state.select_index(index)
-                    real_screen = _launch_selected(state, real_screen, icons)
+                if state.phase == Phase.CONFIRM_SHUTDOWN:
+                    # Mirrors the keyboard: clicking the same "S SHUT
+                    # DOWN" footer text that opened the prompt confirms
+                    # it; clicking anywhere else cancels - this is what
+                    # lets a mouse-only setup both trigger and confirm a
+                    # shutdown with no keyboard at all.
+                    if hit_test_footer(_system_items_visual(state, icons), event.pos) == "shutdown":
+                        subprocess.run(["systemctl", "poweroff"])
+                    else:
+                        state.cancel()
+                    continue
+                footer_action = hit_test_footer(_system_items_visual(state, icons), event.pos)
+                if footer_action == "shutdown":
+                    state.request_shutdown()
+                elif footer_action == "quit":
+                    _quit_to_desktop()
+                    running = False
+                else:
+                    index = hit_test(_system_items_visual(state, icons), event.pos)
+                    if index is not None:
+                        state.select_index(index)
+                        real_screen = _launch_selected(state, real_screen, icons)
 
         items = _system_items_visual(state, icons)
         _draw_frame(real_screen, state.header_text(), items)
