@@ -14,13 +14,13 @@ Full wiring diagram (buck converter power, switch, LED, exact pins):
 
 | Part | Qty | Notes | Link |
 |---|---|---|---|
-| Raspberry Pi | 1 | Pi 4B or Pi 5 recommended (performance - see `../software/lisa-pi-launcher/CLAUDE.md` for why a Pi 3B struggles with Previous/LinApple in particular). Case mounts work at least back to a Pi 3B. | — |
+| Raspberry Pi | 1 | **Pi 4B recommended.** A Pi 3B works but struggles with Previous/LinApple in particular (see `../software/lisa-pi-launcher/CLAUDE.md`); a Pi 5 runs everything fine but this case's power wiring (below) doesn't yet reliably support one - see the main README's "Project status". Case mounts fit all three. | — |
 | microSD card, 32GB | 1 | Real measured usage on a fully-loaded Pi 4 (all five emulators, all disk images): 13GB used of a 29GB card (2026-09-26) - 32GB gives comfortable headroom; go 64GB if you want more margin for future growth (e.g. larger assets if the project moves to a higher-res LCD panel) or just don't want to think about it again. 16GB would be uncomfortably tight. | — |
 | iPad 1/2 LCD panel + controller board | 1 | "Type 2 with LCD" listing appears to be the correct fit. | [AliExpress](https://www.aliexpress.us/item/3256801532761537.html) |
 | 12V→5V buck converter | 1 | Powers the Pi from the same 12V supply as the LCD. | [Amazon](https://a.co/d/07PxophW) |
 | 12V 5A power supply | 1 | Powers the buck converter (→ Pi) and the LCD controller board. | — (any reputable 12V/5A barrel-jack supply) |
 | 5.5x2.5mm barrel jack (panel-mount, female) | 1 | The case's main power *input* - mounts through the hole in the back piece (secured with its own washer/nut), feeding the rocker switch. See `assembly/README.md` §2. | [Amazon](https://a.co/d/0buA0dI0) |
-| 5.5x2.5mm barrel jack (pigtail, male) | 1 | A second one, wired to a short pigtail, to connect the rocker switch's output to the LCD controller board's own 12V barrel-jack input (if your controller board takes power that way - see `assembly/README.md` §3). Not yet confirmed whether this needs to be the same part as the panel-mount jack above or a different one - check your controller board's connector before ordering. | ⚠️ TODO |
+| 5.5x2.5mm barrel jack (pigtail, male) | 1 | A second one, wired to a short pigtail, to connect the rocker switch's output to the LCD controller board's own 12V barrel-jack input (if your controller board takes power that way - see `assembly/README.md` §3). Confirmed correct listing (2026-09-27) - a different part than the panel-mount jack above. | [Amazon](https://a.co/d/0fmf5a9l) |
 | Rocker switch | 1 | Master power switch for the LCD + Pi (cuts 12V before the buck converter/LCD controller, upstream of the GPIO soft-power button below) - see `assembly/README.md` §2. | [Amazon](https://a.co/d/02DKKr63) |
 | Keyboard switch (clear housing recommended, for the light-up GPIO power button) | 1 | Only needed if printing the "With Power Button" back piece - see `3d-models/README.md`. Confirmed correct listing (2026-09-27) - was out of stock as of this writing, so it may need a substitute if still unavailable. | [Amazon](https://a.co/d/05LYYxer) |
 | 3mm warm white or yellow LED | 1 | Lights the GPIO power button - see `../docs/software-setup.md` §2 for the GPIO18 wiring. | [Amazon](https://a.co/d/0dTjaJSu) |
@@ -34,8 +34,4 @@ Full wiring diagram (buck converter power, switch, LED, exact pins):
 
 ## Open items
 
-- Confirm whether the LCD controller board's power connector needs a
-  second, different barrel-jack part than the case's main power-input
-  jack (see the ⚠️ TODO row above) - depends on the specific controller
-  board in your kit.
 - Quantities above assume one Lisa Mini Pi; scale accordingly for more.

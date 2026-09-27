@@ -34,16 +34,34 @@ launch. Once inside an emulator, shut it down from the guest OS itself
 
 ## Project status: work in progress
 
+**Hardware support**: the full software stack (all five emulators, the
+kiosk launcher, `provision.sh`) has been fully tested end-to-end on both
+a Pi 3 and a Pi 5, in addition to the **Pi 4, which remains the
+recommended target**. Where the other two currently fall short:
+
+- **Pi 3**: works, but emulator performance is noticeably worse,
+  especially Previous and LinApple - see
+  `software/lisa-pi-launcher/CLAUDE.md` for specifics.
+- **Pi 5**: the software side is fully working, but the current
+  3D-printed case has no mounting for the dedicated power board a Pi 5
+  needs to be powered reliably through the GPIO header (a plain
+  12V→5V buck converter, fine for a Pi 4, isn't a reliable power source
+  for a Pi 5) - full physical Pi 5 support is pending a case revision
+  that adds that mounting.
+
 The case, hardware choices, and software here all still reflect one
-specific build (Pi 4B/5, iPad 1/2 LCD panel, 1024x768). Nothing about
-that is locked in - expect breaking changes to the hardware and/or
+specific build (Pi 4, iPad 1/2 LCD panel, 1024x768) otherwise. Nothing
+about that is locked in - expect breaking changes to the hardware and/or
 software as these are explored:
 
 - **An iPad 3/4 LCD panel + a Pi 5 dual-power board**, together (not
   separately) — specific parts already in hand as of 2026-09-27, not yet
   built. Higher resolution than the current iPad 1/2 panel, and since the
   new panel's driver board runs on 5V rather than 12V, this combination
-  could also drop the current external 12V→5V buck converter entirely.
+  could also drop the current external 12V→5V buck converter entirely -
+  a separate, nicer-to-have bonus on top of (not a substitute for) the
+  Pi 5 power-board case mounting noted above, which a future case
+  revision needs regardless of which LCD panel it ends up paired with.
   See `hardware/assembly/README.md`'s "Future revision being explored"
   section for the parts and reasoning.
 - **An 11.6" widescreen LCD front panel**, which would need real

@@ -15,9 +15,13 @@ STL files for the Lisa Mini Pi case, sized around the repurposed iPad
 | `Lisa-Mini-Pi_Blank-Small-Badge.stl` | 1 | Blank badge variant, if you'd rather not print the Lisa logo. |
 | `Lisa-Mini-Pi_All-Plates.3mf` | - | Slicer project file with every part above laid out on build plates together - open this instead of the individual STLs if your slicer supports `.3mf` and you want everything queued up at once. |
 
-Raspberry Pi mounting works with a Pi 4B or 5 (recommended) down to a
-Pi 3B (see `../bill-of-materials.md` for why 4B/5 are recommended -
-performance, not fit).
+Raspberry Pi mounting fits a Pi 3B, 4B, or 5 - **Pi 4B is the
+recommended target**: better performance than a Pi 3B (see
+`../bill-of-materials.md`), and unlike a Pi 5, its power needs are
+already covered by this case's buck-converter wiring. A Pi 5 boots and
+runs the full software stack fine, but this case has no mounting yet for
+the dedicated power board a Pi 5 needs for reliable GPIO power delivery -
+see the main README's "Project status" for detail.
 
 Assembly instructions (fitting the LCD, wiring the power button, closing
 the case) live in `../assembly/README.md`.
