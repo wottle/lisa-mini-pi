@@ -37,10 +37,13 @@ specific build (Pi 4B/5, iPad 1/2 LCD panel, 1024x768). Nothing about
 that is locked in - expect breaking changes to the hardware and/or
 software as these are explored:
 
-- **An iPad 3/4 LCD panel**, for higher resolution than the current
-  iPad 1/2 panel.
-- **Fitting a Pi 5 in the case alongside a power regulation board**,
-  rather than the current external buck-converter setup.
+- **An iPad 3/4 LCD panel + a Pi 5 dual-power board**, together (not
+  separately) — specific parts already in hand as of 2026-09-27, not yet
+  built. Higher resolution than the current iPad 1/2 panel, and since the
+  new panel's driver board runs on 5V rather than 12V, this combination
+  could also drop the current external 12V→5V buck converter entirely.
+  See `hardware/assembly/README.md`'s "Future revision being explored"
+  section for the parts and reasoning.
 - **An 11.6" widescreen LCD front panel**, which would need real
   software changes (the launcher's whole layout is currently hardcoded
   for a fixed 1024x768 4:3 panel - see `theme.py`'s docstring) to fit

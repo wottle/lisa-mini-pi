@@ -20,5 +20,4 @@ Pi 3B (see `../bill-of-materials.md` for why 4B/5 are recommended -
 performance, not fit).
 
 Assembly instructions (fitting the LCD, wiring the power button, closing
-the case) live in `../assembly/README.md` - still a placeholder as of
-this writing, pending build photos.
+the case) live in `../assembly/README.md`.
