@@ -15,6 +15,21 @@ A physical GPIO power button + LED are wired up for the systems that
 support a clean button-triggered shutdown (Lisa, NeXT, Apple II) — see
 `docs/software-setup.md` §2.
 
+## Controls
+
+At the picker: arrow keys or mouse hover to select, Return or click to
+launch. Once inside an emulator, shut it down from the guest OS itself
+(or the physical power button, where wired) to return to the picker.
+
+- **SHUT DOWN** (`S`, or click its footer text) and **QUIT** (`Q`, or
+  click its footer text, which switches to the full Raspberry Pi Desktop)
+  both open a confirmation dialog first — too disruptive to fire on a
+  single accidental key/click. Confirm with Return or by clicking
+  CONFIRM; cancel with Escape or by clicking CANCEL.
+- **Reboot** (`R`) is a hidden shortcut — not shown in the footer, and
+  runs immediately with no confirmation.
+- Escape/Ctrl+C don't get you out of the kiosk — none exist by design.
+
 ## Project status: work in progress
 
 The case, hardware choices, and software here all still reflect one
