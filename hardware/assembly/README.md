@@ -91,11 +91,19 @@ Wire the keyboard-switch power button and its LED per
 
 ## 5. Back piece: Pi power and video
 
-1. Run two more Dupont wires from the buck converter's output to the
+1. **Before connecting anything to the Pi**, calibrate the buck
+   converter's output: with the barrel jack's power connected and the
+   rocker switch on, put a multimeter on the buck converter's output
+   terminals and adjust its trim screw until it reads roughly **5.1V**.
+   These converters ship set to an arbitrary voltage, not necessarily
+   safe for the Pi - do this check every time, even if you've calibrated
+   one before, and definitely before the next step ever touches the Pi's
+   GPIO pins.
+2. Run two more Dupont wires from the buck converter's output to the
    Pi's GPIO **Pin 2** (5V) and **Pin 6** (GND) — see the wiring diagram.
    This is how the Pi gets power in this build, not through its
    USB-C/micro-USB port — **never connect USB power at the same time**.
-2. Plug a micro-HDMI-to-HDMI cable into the Pi.
+3. Plug a micro-HDMI-to-HDMI cable into the Pi.
 
 ![Switch/LED and buck-converter-power wires plugged into the Pi's GPIO header](images/PI_GPIO_pins.jpg)
 
