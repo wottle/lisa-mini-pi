@@ -21,14 +21,47 @@ support a clean button-triggered shutdown (Lisa, NeXT, Apple II) — see
 
 All on real hardware, 2026-09-27.
 
-![The "CHOOSE YOUR ADVENTURE" picker](docs/images/screenshots/1.launcher.jpg)
-![Lisa Office System 3.1 booting](docs/images/screenshots/2.booting_lisa_office_system.jpg)
-![Lisa Office System 3.1 running](docs/images/screenshots/3.running_los.jpg)
-![Classic Mac OS 6.0.8 running, via Mini vMac](docs/images/screenshots/4.running_mac_os_6.0.8.jpg)
-![Classic Mac OS 7.5.3 running, via Basilisk II](docs/images/screenshots/5.running_mac_os_7.5.3.jpg)
-![NeXTSTEP 3.3 booting, via Previous](docs/images/screenshots/6.booting_nextstep.jpg)
-![NeXTSTEP 3.3 running, via Previous](docs/images/screenshots/7.running_nextstep.jpg)
-![Apple II Total Replay running, via LinApple](docs/images/screenshots/8.running_apple_ii_total_replay.jpg)
+<table>
+<tr>
+<td align="center" width="33%">
+<img src="docs/images/screenshots/1.launcher.jpg" width="100%"><br>
+<sub>The "CHOOSE YOUR ADVENTURE" picker</sub>
+</td>
+<td align="center" width="33%">
+<img src="docs/images/screenshots/2.booting_lisa_office_system.jpg" width="100%"><br>
+<sub>Lisa Office System 3.1 booting</sub>
+</td>
+<td align="center" width="33%">
+<img src="docs/images/screenshots/3.running_los.jpg" width="100%"><br>
+<sub>Lisa Office System 3.1 running</sub>
+</td>
+</tr>
+<tr>
+<td align="center" width="33%">
+<img src="docs/images/screenshots/4.running_mac_os_6.0.8.jpg" width="100%"><br>
+<sub>Classic Mac OS 6.0.8, via Mini vMac</sub>
+</td>
+<td align="center" width="33%">
+<img src="docs/images/screenshots/5.running_mac_os_7.5.3.jpg" width="100%"><br>
+<sub>Classic Mac OS 7.5.3, via Basilisk II</sub>
+</td>
+<td align="center" width="33%">
+<img src="docs/images/screenshots/6.booting_nextstep.jpg" width="100%"><br>
+<sub>NeXTSTEP 3.3 booting, via Previous</sub>
+</td>
+</tr>
+<tr>
+<td align="center" width="33%">
+<img src="docs/images/screenshots/7.running_nextstep.jpg" width="100%"><br>
+<sub>NeXTSTEP 3.3 running, via Previous</sub>
+</td>
+<td align="center" width="33%">
+<img src="docs/images/screenshots/8.running_apple_ii_total_replay.jpg" width="100%"><br>
+<sub>Apple II Total Replay, via LinApple</sub>
+</td>
+<td width="33%"></td>
+</tr>
+</table>
 
 ## Controls
 
