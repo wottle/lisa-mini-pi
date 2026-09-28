@@ -31,5 +31,27 @@ fi
 cp "$SCRIPT_DIR/splash.png" "$DEST"
 echo "installed $SCRIPT_DIR/splash.png -> $DEST"
 
+# Plymouth needs "splash" (and normally "quiet", to suppress the kernel/
+# systemd boot text this is meant to cover up) on the kernel command
+# line to engage at all - confirmed on real hardware (2026-09-27) that
+# without it, boot just shows raw text instead of this custom splash,
+# even with the image/theme correctly installed above. Also adds
+# plymouth.ignore-serial-consoles: Plymouth disables its graphical splash
+# whenever it detects a serial console (cmdline.txt's default
+# "console=serial0,115200"), which is otherwise a sensible default for a
+# headless Pi but wrong for this kiosk. Idempotent - only appends
+# whichever of these three tokens aren't already present.
+CMDLINE="/boot/firmware/cmdline.txt"
+if [ -f "$CMDLINE" ]; then
+  for token in splash quiet plymouth.ignore-serial-consoles; do
+    if ! grep -q "$token" "$CMDLINE"; then
+      sed -i "s/\$/ $token/" "$CMDLINE"
+      echo "added '$token' to $CMDLINE"
+    fi
+  done
+else
+  echo "warning: $CMDLINE not found - add 'splash quiet plymouth.ignore-serial-consoles' to your kernel command line by hand, or Plymouth won't show this splash" >&2
+fi
+
 update-initramfs -u
 echo "initramfs updated - reboot to see the new splash"

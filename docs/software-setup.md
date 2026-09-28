@@ -432,6 +432,15 @@ reads its theme files out of the initramfs image at early boot, not
 directly off the live root filesystem, so a plain file copy alone
 doesn't take effect until the initramfs is rebuilt.
 
+It also idempotently adds `splash`, `quiet`, and
+`plymouth.ignore-serial-consoles` to `/boot/firmware/cmdline.txt` if
+they're missing — confirmed on real hardware (2026-09-27) that without
+`splash`/`quiet`, Plymouth never engages at all and boot just shows raw
+kernel/systemd text instead of this image, and separately that Plymouth
+disables its graphical splash whenever it detects a serial console
+(`console=serial0,115200`, part of this cmdline by default), which is a
+sensible default for a headless Pi but wrong for this kiosk.
+
 To revert to the stock Raspberry Pi splash:
 
 ```
