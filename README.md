@@ -17,6 +17,19 @@ A physical GPIO power button + LED are wired up for the systems that
 support a clean button-triggered shutdown (Lisa, NeXT, Apple II) — see
 `docs/software-setup.md` §2.
 
+## Screenshots
+
+All on real hardware, 2026-09-27.
+
+![The "CHOOSE YOUR ADVENTURE" picker](docs/images/screenshots/1.launcher.jpg)
+![Lisa Office System 3.1 booting](docs/images/screenshots/2.booting_lisa_office_system.jpg)
+![Lisa Office System 3.1 running](docs/images/screenshots/3.running_los.jpg)
+![Classic Mac OS 6.0.8 running, via Mini vMac](docs/images/screenshots/4.running_mac_os_6.0.8.jpg)
+![Classic Mac OS 7.5.3 running, via Basilisk II](docs/images/screenshots/5.running_mac_os_7.5.3.jpg)
+![NeXTSTEP 3.3 booting, via Previous](docs/images/screenshots/6.booting_nextstep.jpg)
+![NeXTSTEP 3.3 running, via Previous](docs/images/screenshots/7.running_nextstep.jpg)
+![Apple II Total Replay running, via LinApple](docs/images/screenshots/8.running_apple_ii_total_replay.jpg)
+
 ## Controls
 
 At the picker: arrow keys or mouse hover to select, Return or click to
