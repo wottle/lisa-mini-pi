@@ -123,6 +123,13 @@ of it may shift under a future build.
 
 ## Setting up a new Pi
 
+**Do this before any hardware assembly** — get the Pi fully set up and
+all five systems confirmed working on the bare board first (see
+`hardware/bill-of-materials.md` for the ROM/disk assets), *then* build
+the case around it (`hardware/assembly/README.md`). Debugging a wiring
+or software issue is far easier with everything exposed on a desk than
+after it's screwed and glued into a closed case.
+
 ```
 git clone https://github.com/wottle/lisa-mini-pi.git ~/lisa-mini-pi
 ~/lisa-mini-pi/scripts/provision.sh

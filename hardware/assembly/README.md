@@ -1,5 +1,11 @@
 # Assembly Instructions
 
+**Do the software setup first** (see the main README's "Setting up a new
+Pi") — flash the Pi, run `provision.sh`, place your ROM/disk assets, and
+confirm all five systems boot on the bare board before starting here.
+Debugging a wiring or software issue is far easier with everything
+exposed on a desk than after it's screwed and glued into a closed case.
+
 Step-by-step build for the iPad 1/2 LCD + external buck-converter power
 variant documented elsewhere in this repo (see `../3d-models/README.md`
 for STL files/quantities, `../bill-of-materials.md` for parts, and
