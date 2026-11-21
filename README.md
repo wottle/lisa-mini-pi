@@ -74,6 +74,12 @@ launch. Once inside an emulator, shut it down from the guest OS itself
   both open a confirmation dialog first — too disruptive to fire on a
   single accidental key/click. Confirm with Return or by clicking
   CONFIRM; cancel with Escape or by clicking CANCEL.
+- **Auto-start** (`A`): highlight a system and press `A` to make it start
+  by itself at power-on; press `A` again on it to clear. The marked card
+  shows an `AUTO` tag, and only one system can be marked. It applies once
+  per power-on (a launcher restart later in the same boot shows the picker),
+  and exiting the emulator returns to the picker. See
+  `docs/software-setup.md` §3.
 - **Reboot** (`R`) is a hidden shortcut — not shown in the footer, and
   runs immediately with no confirmation.
 - Escape/Ctrl+C don't get you out of the kiosk — none exist by design.

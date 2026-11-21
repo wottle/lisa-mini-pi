@@ -190,6 +190,22 @@ measured 2026-11-21; see SETUP.md §4). **No GPIO power
   tested only until the author confirms on the panel. See SETUP.md Known
   gaps.
 
+## Auto-start (2026-11-21)
+
+- `A` on the highlighted system marks it to start by itself at power-on
+  (`AUTO` tag in the card's top-right corner, "A AUTO" footer hint); `A` on
+  the marked one clears it; one mark at most. Stored per machine in
+  `~/.config/lisa-launcher/autostart`, not in `config.json`.
+- Once per power-on, by design: `autostart.AutoStart.startup()` notes the
+  boot id in `last-boot-id` the first time the launcher starts in a boot,
+  *before* launching, so a watchdog or service restart in the same boot shows
+  the picker and never retries an emulator that may be a corrupt install. No
+  countdown or cancel window (the author chose straight into the emulator).
+- Anything odd (damaged file, unknown system id, unreadable or unwritable
+  boot note) means show the picker. Tests: `tests/test_autostart.py`,
+  `tests/test_autostart_ui.py`, and `tests/test_launcher_autostart.py`, which
+  drives the real `launcher.main()` under the dummy video driver.
+
 ## Known open items
 
 - Basilisk II's DGA fullscreen mode was reinstated after the process-group

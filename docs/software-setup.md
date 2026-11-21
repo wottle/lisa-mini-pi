@@ -234,6 +234,32 @@ launcher's own shutdown/reboot keys (`S`/`R`) to work without
 authentication, including while a second session (e.g. an SSH login used
 to administer the Pi) is also active.
 
+### Auto-start at power-on
+
+Highlight a system in the picker and press `A` to mark it as the one that
+starts by itself at power-on (an `AUTO` tag appears in its card's top-right
+corner; `A` again on it clears the mark; only one system can be marked).
+On the next power-on the launcher goes straight into it, with no countdown.
+
+It is deliberately **once per power-on**: the launcher notes Linux's
+per-boot id (`/proc/sys/kernel/random/boot_id`) in
+`~/.config/lisa-launcher/last-boot-id` the first time it starts in each
+boot, *before* launching anything. A later start in the same boot - the
+watchdog restarting the launcher after an emulator hangs, coming back from
+the desktop, a `systemctl restart launcher` - therefore shows the picker
+and never retries the emulator, which could be a corrupt install. A reboot
+(`R`) or power cycle is a new boot, so it auto-starts again. Exiting the
+emulator returns to the picker as usual.
+
+The mark is per machine, in `~/.config/lisa-launcher/autostart` (the
+system's `id`), not in `config.json`, which is shared and committed. If the
+file is unreadable, names a system that is no longer in `config.json`, or
+the boot id can't be read or noted, the launcher shows the picker. Delete
+the file to clear the mark by hand. The logic is in `autostart.py`; its
+tests, and the tests that drive the real launcher loop, are
+`tests/test_autostart.py`, `tests/test_autostart_ui.py` and
+`tests/test_launcher_autostart.py`.
+
 ## 4. Basilisk II (classic Mac OS, System 7.5.3)
 
 Full install/build steps are in

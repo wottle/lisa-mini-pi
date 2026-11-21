@@ -39,6 +39,26 @@ shell string) that blocks until the emulator exits.
 - R: reboot the Pi
 - Q: switch to the full Raspberry Pi Desktop (see the caveat above); an
   "Emulator Launcher" desktop icon returns to the kiosk
+- A: mark the highlighted system to start automatically at power-on, or
+  clear the mark if it is already the marked one (see below)
+
+## Auto-start at power-on
+
+Press `A` on a highlighted system and it gets a small `AUTO` tag; the next
+time the Pi powers on, the launcher goes straight into that system.
+Pressing `A` on another system moves the mark, and pressing it on the marked
+one clears it. With nothing marked the launcher shows the picker, as before.
+
+- It happens **once per power-on**. If the launcher restarts later in the
+  same boot (the watchdog restarting it after a hang, coming back from the
+  desktop), it shows the picker and does not try the emulator again, so a
+  broken install can't loop.
+- Exiting the emulator returns to the picker.
+- The setting is per machine, in `~/.config/lisa-launcher/autostart` (the
+  system's `id` from `config.json`); `last-boot-id` in the same folder notes
+  which boot already started. Deleting `autostart` clears the mark.
+- A mark for a system that is no longer in `config.json`, an unreadable
+  file, or a Pi where the boot id can't be read all mean "show the picker".
 
 ## Running the tests
 
