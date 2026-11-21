@@ -36,10 +36,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 RUN_SCRIPT="${RUN_SCRIPT:-$SCRIPT_DIR/lisa-run-with-led.sh}"
 # Matches the launcher's own config.json invocation (-k implies -p -d -F
-# plus quit-on-poweroff). No -M/-M- flag: the lisa-fixes-1024x768 branch
-# doesn't register one at all - see this project's SETUP.md Known Gaps for
-# how mouse-to-top-menu is instead kept on via a source patch. Using -M-
-# here would make LisaEm reject the whole command line.
+# plus quit-on-poweroff). No -M/-M- flag, the same as the launcher's
+# own invocation. (The older lisa-fixes-1024x768 branch registered no -M
+# flag, so passing one made LisaEm reject the whole command line.)
 RUN_ARGS=(-k -d)
 
 echo "Watching GPIO17 for power-button presses (Ctrl+C to stop)..."

@@ -177,6 +177,6 @@ any script that calls `sudo`.
 ## Related repos
 
 - [`wottle/lisaem`](https://github.com/wottle/lisaem) (branch
-  `lisa-fixes-1024x768`) — patched fork of `arcanebyte/lisaem` used for the
+  `pi4-lisa-fixes`) — patched fork of `arcanebyte/lisaem` used for the
   Apple Lisa environment. See `docs/software-setup.md` for what's patched
   and why.

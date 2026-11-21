@@ -135,14 +135,14 @@ fi
 export PATH="$WX_PREFIX/bin:$PATH"
 
 # ---------------------------------------------------------------------
-step "4. LisaEm (wottle/lisaem, lisa-fixes-1024x768 branch)"
+step "4. LisaEm (wottle/lisaem, pi4-lisa-fixes branch)"
 # ---------------------------------------------------------------------
 LISAEM_DIR=~/lisaem-fixes-src
 if [ -x "$LISAEM_DIR/bin/lisaem" ]; then
   skip "LisaEm (found $LISAEM_DIR/bin/lisaem)"
 else
   if [ ! -d "$LISAEM_DIR" ]; then
-    git clone --branch lisa-fixes-1024x768 https://github.com/wottle/lisaem.git "$LISAEM_DIR"
+    git clone --branch pi4-lisa-fixes https://github.com/wottle/lisaem.git "$LISAEM_DIR"
   fi
   ( cd "$LISAEM_DIR" && PATH="$WX_PREFIX/bin:$PATH" ./build.sh clean build )
 fi

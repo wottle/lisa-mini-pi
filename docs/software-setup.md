@@ -24,8 +24,20 @@ missing on a Pi 3B set up this way - that's expected, not a bug to fix.
 ## 1. Apple Lisa emulation: building the patched LisaEm
 
 The stock `arcanebyte/lisaem` has a couple of Linux/ARM-specific bugs.
-`wottle/lisaem` (branch `lisa-fixes-1024x768`) carries the fixes on top of
+`wottle/lisaem` (branch `pi4-lisa-fixes`) carries the fixes on top of
 `arcanebyte/lisaem`'s `master`, including:
+
+> **One branch for every build (2026-11-21).** The Pi 5 originally ran the
+> `lisa-fixes-1024x768` branch and the Lisa Mini ran a separate
+> `pi4-all-enhancements` line (Fit to Window mode, real Apple-key shortcuts, a
+> `-M`/`--no-topmenu` preference, and 68k/floppy/video-latch fixes). I merged
+> them into `pi4-lisa-fixes`: that line plus my Fill-mode pointer-clamp fix
+> and the F12 power-key handler. `lisa-fixes-1024x768` is left in the fork as
+> history. The list below was written for the older branch; `pi4-lisa-fixes`
+> has its own versions of the Fill mode and signed-char fixes. **Built and run
+> on the Lisa Mini (Pi 4) only; I have not yet rebuilt it on the Pi 5 or run a
+> fresh `provision.sh` against it.** I did not check whether the older
+> branch's HQX 3.5x display fix is covered.
 
 - The Power Button menu item never had a working keyboard shortcut, on any
   platform — menu labels alone don't create working accelerators in this
@@ -53,7 +65,7 @@ export PATH=/usr/local/wx3.2.1-gtk/bin:$PATH
 ### Building
 
 ```bash
-git clone --branch lisa-fixes-1024x768 https://github.com/wottle/lisaem.git ~/lisaem-fixes-src
+git clone --branch pi4-lisa-fixes https://github.com/wottle/lisaem.git ~/lisaem-fixes-src
 cd ~/lisaem-fixes-src
 export PATH=/usr/local/wx3.2.1-gtk/bin:$PATH
 ./build.sh clean build
@@ -130,13 +142,14 @@ once the Lisa powers off; `-d`: boot from the ProFile/Widget drive. This
 is also exactly what `config.json`'s `lisa` entry passes, so the button
 and the launcher menu behave identically.)
 
-**`-k` on the `lisa-fixes-1024x768` branch used to unconditionally force
+**`-k` on the older `lisa-fixes-1024x768` branch used to unconditionally force
 mouse-to-top-reveals-menu off** - fine for a picker with no other UI, but
 on a kiosk with no titlebar/window-manager chrome, that's the *only* way
 to reach the Special/Shut Down menu without a keyboard, so it's been
 patched to leave that setting at its saved default (on) instead. There's
-no `-M`/`-M-` flag on this branch to fix it via the command line the way
-the other `wottle/lisaem` branch used - see the patch note in
+no `-M`/`-M-` flag on that branch to fix it via the command line (the
+`pi4-lisa-fixes` branch has one, but the launcher still passes plain `-k -d`,
+which works on the Lisa Mini) - see the patch note in
 `software/lisa-pi-launcher/SETUP.md`'s Known Gaps if rebuilding from a
 clean checkout of this branch.
 

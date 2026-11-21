@@ -164,7 +164,7 @@ sudo apt install -y git build-essential python3-pip python3-venv \
 ## 3. LisaEm
 
 Built from source — this project's own fork
-(`https://github.com/wottle/lisaem`), branch **`lisa-fixes-1024x768`**,
+(`https://github.com/wottle/lisaem`), branch **`pi4-lisa-fixes`**,
 which has a real upstream Linux/ARM portability fix (`typedef char sint8`
 is unsigned on Linux/ARM but signed on macOS/x86, breaking every backward
 branch displacement in the 68k core — fixed to `typedef signed char
@@ -175,7 +175,7 @@ the unmodified upstream `arcanebyte/lisaem`, and don't omit the branch —
 this fork's default branch doesn't have these fixes.
 
 ```
-git clone --branch lisa-fixes-1024x768 https://github.com/wottle/lisaem.git ~/lisaem-fixes-src
+git clone --branch pi4-lisa-fixes https://github.com/wottle/lisaem.git ~/lisaem-fixes-src
 ```
 
 LisaEm needs wxWidgets 3.2.1 built from source (Debian's packaged wx is
