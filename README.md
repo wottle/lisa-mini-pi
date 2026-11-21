@@ -110,6 +110,11 @@ software as these are explored:
   revision needs regardless of which LCD panel it ends up paired with.
   See `hardware/assembly/README.md`'s "Future revision being explored"
   section for the parts and reasoning.
+  **Update 2026-11-21:** the author's Pi 5 build now uses an iPad 3/4
+  panel (2048x1536 native), driven at 1024x768@60 with the panel's
+  controller upscaling, so the launcher and emulators still see 1024x768
+  (see `docs/software-setup.md` §9). Whether the case needed changes for
+  it is not recorded here.
 - **An 11.6" widescreen LCD front panel**, which would need real
   software changes (the launcher's whole layout is currently hardcoded
   for a fixed 1024x768 4:3 panel - see `theme.py`'s docstring) to fit

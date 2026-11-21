@@ -356,6 +356,7 @@ cpu 3
 fpu false
 nogui true
 jit false
+frameskip 1
 BASILISKPREFS
   echo "    wrote ~/.config/BasiliskII/prefs"
 fi

@@ -28,7 +28,7 @@ specific/recently-updated one is probably right.
 
 ## Current hardware baseline
 
-Two physical units, deliberately not identical:
+Physical units, deliberately not identical:
 
 - **Pi 4 Model B** — the primary/reference unit. Real 1024x768 HDMI LCD
   panel, physical GPIO power button + LED wired and working, all five
@@ -41,6 +41,12 @@ Two physical units, deliberately not identical:
   button was never wired up either (powered off, not currently in active
   use). `check_deps.py` will correctly flag `next`/`apple2` as missing
   there — expected, not a bug.
+
+- **Pi 5 (4 GB) + iPad 3/4 panel** — the unit used for the 2026-11-21
+  performance work. The panel is 2048x1536 native, driven at
+  **1024x768@60** (the HDMI controller board upscales; set by
+  `system/xsession-launcher.sh`). Controller board make/model not
+  recorded. Not measured: sustained load/thermals with the case closed.
 
 Both run Raspberry Pi OS 64-bit (Debian 13 "trixie"), no desktop
 environment at boot — a bare kiosk X11 session (`launcher.service`, see
@@ -96,7 +102,9 @@ shutdown — see below.
   `~/.config/BasiliskII/prefs`; `screen dga/1024/768` (the legacy X11 DGA
   extension) for true fullscreen — `win/1024/768` just opens a floating
   1024x768 window with no fullscreen/centering, which visually looks like
-  it's overlaying the desktop rather than replacing it. **No GPIO power
+  it's overlaying the desktop rather than replacing it. **`frameskip 1` is
+required** (default 0 = ~11 screen updates/s on a Pi 5; 1 = ~61/s,
+measured 2026-11-21; see SETUP.md §4). **No GPIO power
   button support**: upstream Basilisk II source maps a window-close
   request to a clean ADB Power keypress, but the Debian-packaged build
   actually installed here (man page dated 2002, later relinked against
@@ -149,6 +157,39 @@ shutdown — see below.
   real hardware, not source-reviewed like the others (Apple II has no
   ADB/soft-power concept for this to map onto).
 
+## Display mode, scaling and redraw (2026-11-21)
+
+- The kiosk session sets the connected output to **1024x768@60**
+  (`system/xsession-launcher.sh`); the iPad 3/4 panel's controller
+  upscales. Emulators are configured for 1024x768 and render 1:1.
+  `scripts/display-mode.sh native|1024|status` flips the whole stack to the
+  panel's native 2048x1536 and back (marker file
+  `~/.config/lisa-launcher/native-resolution`, Basilisk II
+  `scale_nearest`/`scale_integer`, LisaEm `hidpi_scale` 200/100); it needs a
+  `sudo systemctl restart launcher` to apply. Mini vMac is a fixed
+  1024x684 build and is not changed by it. **Native was tried on
+  2026-11-21 and reverted** (UI too small; Mini vMac tiny; LisaEm's Fill
+  mode leaves 40 px margins at native where the mouse stops working) -
+  see `docs/software-setup.md` §9. Leave the default at 1024x768.
+- `theme.py` keeps the 1024x768 design as its 1x values and
+  `apply_scale(w, h)` (called from `launcher.py` after the display opens)
+  multiplies every size by the largest whole number that fits and centres
+  the panel - 2x at 2048x1536, 1x at 1024x768. Icons are enlarged with
+  nearest-neighbour to match. Unit tests reset the scale to 1x.
+- `redraw.py` (`RedrawGate`) makes the main loop repaint only when
+  something visible changed, on a window expose event, after an emulator
+  returns, or once a second as a safety net. Before it, the launcher
+  redrew every frame at 30 fps: ~48.5% of a core idle (17 ms/frame at
+  2048x1536). Now ~2-3%.
+- `~/.lisaem` needs `hidpi_scale=100` at a 1024x768 output (200 shows only
+  a quarter of the screen). Basilisk II needs `frameskip 1`.
+- LisaEm's Fill mode has a local patch (2026-11-21) in the
+  `lisaem-fixes-src` tree: centre from the client area, clamp the pointer
+  to the picture edge. Binary installed, original saved as
+  `bin/lisaem.orig-20261121`; source change uncommitted. Virtual-display
+  tested only until the author confirms on the panel. See SETUP.md Known
+  gaps.
+
 ## Known open items
 
 - Basilisk II's DGA fullscreen mode was reinstated after the process-group
@@ -190,12 +231,13 @@ shutdown — see below.
 The whole project (case STLs, BOM, `provision.sh`, and everything in
 this codebase sized for a fixed 1024x768 4:3 panel — see `theme.py`'s
 docstring) currently assumes one specific build: Pi 4B/5, iPad 1/2 LCD
-panel. Three changes are being explored, none started yet:
+panel. Three changes are being explored, none started yet as of that date (see the first bullet for what has changed since):
 
 - **An iPad 3/4 LCD panel** for higher resolution than the current
-  iPad 1/2 panel — would need new case geometry and likely a
-  `theme.py`/`SCREEN_WIDTH`/`SCREEN_HEIGHT` rework once a real target
-  resolution is known.
+  iPad 1/2 panel — **update 2026-11-21: the author's Pi 5 build now uses
+  one (2048x1536), driven at 1024x768 so the launcher and emulators are
+  unchanged; `theme.py` also scales to the real screen size.** Whether
+  the case needed new geometry is not recorded here.
 - **Fitting a Pi 5 in the case alongside a power regulation board**,
   replacing the current external 12V buck-converter setup — hardware
   only, no software impact expected.

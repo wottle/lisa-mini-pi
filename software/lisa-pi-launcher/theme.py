@@ -6,10 +6,16 @@ must come from here - no magic numbers elsewhere.
 Everything below is a real screen pixel - there is no separate logical
 canvas scaled up to the real display anymore (that indirection existed
 so the launcher could adapt to whatever resolution was actually
-connected, but caused more problems than it solved). This is a fixed
-design for the real 1024x768 target panel; on a different-sized test
-monitor the picker draws at this same fixed size/position rather than
-adapting, which is an accepted tradeoff for the simplification.
+connected, but caused more problems than it solved). The values written
+here are the 1x design for a 1024x768 panel. At startup launcher.py calls
+apply_scale() (bottom of this file) with the real screen size: it picks
+the largest INTEGER multiple of that design that fits (2x on a
+2048x1536 iPad 3/4 panel) and multiplies every size below by it, so the
+bitmap font, borders and checkerboard stay crisp with no resampling, and
+it centres the panel on the screen. On a screen that isn't an integer
+multiple (or is smaller), the design is drawn at the largest whole
+multiple that fits (at least 1x), centred. Until apply_scale() runs
+(e.g. in the unit tests) everything is the 1x design.
 
 Layout (2026-09-25 redesign, "CHOOSE YOUR ADVENTURE" card grid): a
 single cream panel holds a title, a rule, a row of bordered item cards
@@ -33,6 +39,8 @@ SHADOW_OFFSET = 6  # black drop-shadow offset, down and to the right
 # (not via Rect.inflate(), whose halving-per-side semantics previously
 # made this constant's "each side" doc comment inaccurate).
 PANEL_CONTENT_INSET = 32
+# Width (px) of the 1px outlines around the panel, cards, dialog and buttons.
+BORDER_WIDTH = 1
 
 # Icons are square, ICON_SIZE x ICON_SIZE real px - matches the real
 # 128x128 PNG assets (imported from high-res source art via
@@ -117,3 +125,55 @@ CHECKER_CELL_SIZE = 2
 PANEL_HEIGHT = 395
 # Centered in the 768px screen: (768 - 395) // 2 = 186.
 PANEL_Y = 186
+
+
+# ---------------------------------------------------------------------------
+# Resolution scaling. Everything above is the 1x (1024x768) design; apply_scale
+# rewrites the module globals below for the real screen. rendering.py reads
+# these as theme.NAME at call time, so it picks the new values up automatically.
+# ---------------------------------------------------------------------------
+
+# Every constant that is a size in screen pixels, and so scales with UI_SCALE.
+# (ITEMS_PER_ROW is a count, and PANEL_X/PANEL_Y/SCREEN_* are recomputed.)
+_SCALED_NAMES = (
+    "PANEL_WIDTH", "PANEL_HEIGHT", "SHADOW_OFFSET", "PANEL_CONTENT_INSET",
+    "BORDER_WIDTH", "ICON_SIZE", "CHECK_ICON_SIZE",
+    "ITEM_BOX_WIDTH", "ICON_SPACING", "ITEMS_ROW_GAP",
+    "ITEM_BOX_PADDING_TOP", "ITEM_BOX_ICON_NAME_GAP",
+    "ITEM_BOX_NAME_SUBTITLE_GAP", "ITEM_BOX_PADDING_BOTTOM", "ITEM_ROW_HEIGHT",
+    "FONT_SCALE", "SUBTITLE_FONT_SCALE",
+    "RULE_THICKNESS", "HEADER_RULE_GAP", "RULE_TO_GRID_GAP",
+    "GRID_TO_RULE_GAP", "RULE_TO_FOOTER_GAP",
+    "FOOTER_BUTTON_GAP", "FOOTER_BUTTON_PADDING",
+    "CONFIRM_DIALOG_WIDTH", "CONFIRM_DIALOG_HEIGHT",
+    "CONFIRM_DIALOG_MESSAGE_TOP_GAP", "CONFIRM_DIALOG_BUTTONS_BOTTOM_GAP",
+    "CONFIRM_BUTTON_GAP", "CONFIRM_BUTTON_PADDING",
+    "CHECKER_CELL_SIZE",
+)
+_BASE = {name: globals()[name] for name in _SCALED_NAMES}
+_BASE_SCREEN = (SCREEN_WIDTH, SCREEN_HEIGHT)
+
+UI_SCALE = 1
+
+
+def compute_scale(width: int, height: int) -> int:
+    """Largest whole multiple of the 1024x768 design that fits a
+    width x height screen (never less than 1)."""
+    return max(1, min(width // _BASE_SCREEN[0], height // _BASE_SCREEN[1]))
+
+
+def apply_scale(width: int, height: int) -> int:
+    """Rescale every layout constant for a width x height screen and centre
+    the panel on it. Call once, after the display is opened and before any
+    layout or drawing. Idempotent: always computed from the 1x design, never
+    from already-scaled values. Returns the scale factor used."""
+    global UI_SCALE, SCREEN_WIDTH, SCREEN_HEIGHT, PANEL_X, PANEL_Y
+    scale = compute_scale(width, height)
+    for name, base in _BASE.items():
+        globals()[name] = base * scale
+    UI_SCALE = scale
+    SCREEN_WIDTH, SCREEN_HEIGHT = width, height
+    # Centre the single-row panel (extra rows, if any, extend downward as before).
+    PANEL_X = (width - PANEL_WIDTH) // 2
+    PANEL_Y = (height - PANEL_HEIGHT) // 2
+    return scale

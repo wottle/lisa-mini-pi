@@ -46,6 +46,12 @@ an agent — an agent should hand you the exact command rather than run it.
   iPad 2 panel + HDMI driver board) — a Lisa-shaped 3D-printed case is
   built around it. Everything in this repo that's "sized for the real
   display" means 1024x768, even while testing on a different monitor.
+- **Current build (confirmed 2026-11-21): Raspberry Pi 5 (4 GB) with an
+  iPad 3/4 panel** (2048x1536 native) behind an HDMI driver board. The Pi
+  is deliberately driven at **1024x768@60** and the board upscales it, so
+  "the real display" still means 1024x768 to the launcher and every
+  emulator. See §7 for how that mode is set, and "Known gaps" for what
+  was not verified.
 - USB keyboard/mouse
 - A second computer with [Raspberry Pi Imager](https://www.raspberrypi.com/software/)
   installed and a microSD card reader (built-in or USB), to flash the card
@@ -318,6 +324,12 @@ that fills the real 1024x768 panel; `throttle=16`/`hidehostmouse=1`/
 `disable_screen_dimming=1` are the project's own tuned values for a
 dedicated kiosk display, not required just to fix the skin issue.)
 
+**`hidpi_scale` must be `100` at a 1024x768 output.** A `~/.lisaem` with
+`hidpi_scale=200` renders LisaEm at 2048x1536, so only the top-left
+quarter of it fits on a 1024x768 screen (seen on the Pi 5 build,
+2026-11-21; setting it to 100 fixed it). LisaEm rewrites `~/.lisaem` when
+it exits, so edit it only while LisaEm is not running.
+
 ## 4. Basilisk II
 
 Already installed via apt (§2). You need a 68k Mac ROM and a classic Mac
@@ -343,6 +355,7 @@ cpu 3
 fpu false
 nogui true
 jit false
+frameskip 1
 ```
 
 **`screen dga/1024/768`, not `win/1024/768`** — `win` just opens a plain
@@ -354,6 +367,14 @@ size, so it should adapt correctly once the real 1024x768 panel is
 connected. (`dga` was avoided earlier in this project after a crash —
 that crash turned out to be an unrelated process-group signal bug in the
 launcher, since fixed; see the "Wiring it into the launcher" section.)
+
+**`frameskip 1` is required for a smooth screen.** Its default of 0 gave
+only about 11 screen updates per second on a Pi 5 (measured 2026-11-21 by
+counting `SDL_RenderPresent` calls while the pointer moved), so the mouse
+pointer and all drawing looked jerky. `frameskip 1` gave about 61 per
+second; `frameskip 6` gave 11 again (only 0, 1 and 6 were tried). The
+software renderer (`sdlrender software`), `sdl_vsync false`, `idlewait
+true` and `screen win/1024/768` all made no difference to the rate.
 
 ## 5. Mini vMac
 
@@ -511,6 +532,20 @@ sudo systemctl enable --now launcher-watchdog.timer
   `TTYVTDisallocate=yes` + `Conflicts=getty@tty1.service` — a bare
   `Type=simple` unit has no logind session, and Xorg fails immediately
   with `xf86OpenConsole: Switching VT failed` without one.
+- `system/xsession-launcher.sh` also sets the display mode: it finds the
+  connected output and runs `xrandr --output <output> --mode 1024x768
+  --rate 60`, right after starting openbox and before the launcher. On the
+  iPad 3/4 panel (native 2048x1536) that makes the Pi send 1024x768 and
+  the panel's controller upscales it. If the panel doesn't offer the mode
+  the command does nothing and the launcher scales to whatever size X came
+  up at. To use the panel's native mode instead, run
+  `scripts/display-mode.sh native` (it creates the marker file
+  `~/.config/lisa-launcher/native-resolution`, which the script checks
+  before running `xrandr`, and sets `scale_nearest`/`scale_integer` for
+  Basilisk II and `hidpi_scale=200` for LisaEm); `display-mode.sh 1024`
+  undoes it and `display-mode.sh status` shows what is set. Restart the
+  kiosk to apply. The launcher then draws its layout at 2x. The console
+  and boot splash still appear at the native mode before X starts.
 - `launcher-watchdog.timer` runs `launcher-watchdog.sh` every 30s, which
   restarts `launcher.service` if neither the launcher nor a known
   emulator process is running — covers the case where an emulator hangs
@@ -663,3 +698,36 @@ broken this in the past.
   available as of 2026-09-22. `Q` (kiosk → desktop) itself is unaffected
   and still works fine on any Pi; a plain reboot is the way back into the
   kiosk on a Pi 4 instead of the icon.
+- **Pi 5 + iPad 3/4 panel (confirmed 2026-11-21).** Verified on that
+  build: panel EDID offers 1024x768 at 60 and 75 Hz; no throttling or
+  undervoltage was seen (`vcgencmd get_throttled` = `0x0`, 47-57 °C,
+  light use); launcher idle CPU is about 2%; Basilisk II ~61 updates/s
+  with `frameskip 1`; LisaEm fits the screen with `hidpi_scale=100`.
+  **Not verified:** the HDMI controller board's make/model and how well it
+  scales 1024x768; sustained load or temperature with the case closed; the
+  5 V supply under heavy load; a Pi 4 at this mode; the Apple II
+  (LinApple) emulator; the kernel `video=` route for a 1024x768 console;
+  Speedometer scores (one run under synthetic mouse input left the guest
+  unresponsive for over a minute for an unexplained reason - may be the
+  test harness). Mini vMac and Previous were reported working well by the
+  author but weren't measured.
+- **LisaEm "Fill 1024x768" mode: centring and pointer escape (2026-11-21).**
+  The mode draws a 1024x728 bitmap, so a 1024x768 screen has 20 px margins
+  above and below (40 px at native 2048x1536). Two problems, both in
+  `src/host/wxui/lisaem_wx.cpp`: (1) the picture was centred from the
+  *frame* rectangle, which intermittently reads 815 px tall instead of 768
+  (hidden menu/status bars), so about half of launches showed a 43 px black
+  bar on top and clipped the bottom 3 rows; (2) the mouse was only
+  delivered while the pointer was over the picture, so in the margins the
+  host arrow reappeared and the Lisa cursor stopped following ("escaping").
+  **Fixed locally (2026-11-21):** a 30-line patch centres from the window's
+  client area and, in Fill mode, clamps the pointer to the picture edge.
+  Tested on a virtual 1024x768 display only (4/4 launches centred; cursor
+  pinned to the top and bottom edges; 2-4 px from the pointer, same as
+  unpatched); **not yet confirmed on the real panel with a physical
+  mouse.** The patch is applied, uncommitted, to the `lisaem-fixes-src`
+  working tree and the built binary is installed with the original saved
+  as `bin/lisaem.orig-20261121`; it needs committing to the fork, and
+  `PATH=/usr/local/wx3.2.1-gtk/bin:$PATH ./build.sh build` from that tree
+  rebuilds it (incremental, about 25 s). Not tested: clicks in the margins
+  and other video modes.

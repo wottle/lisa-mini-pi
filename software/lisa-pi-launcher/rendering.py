@@ -96,7 +96,7 @@ def draw_panel(surface: pygame.Surface, row_count: int = 1) -> pygame.Rect:
 
     panel_rect = pygame.Rect(theme.PANEL_X, theme.PANEL_Y, theme.PANEL_WIDTH, height)
     surface.fill(_WHITE, panel_rect)
-    pygame.draw.rect(surface, _BLACK, panel_rect, width=1)
+    pygame.draw.rect(surface, _BLACK, panel_rect, width=theme.BORDER_WIDTH)
 
     return panel_interior_rect(row_count)
 
@@ -266,7 +266,7 @@ def draw_confirmation_dialog(surface: pygame.Surface, action: str, hovered: str 
     shadow_rect = dialog.move(theme.SHADOW_OFFSET, theme.SHADOW_OFFSET)
     surface.fill(_BLACK, shadow_rect)
     surface.fill(_WHITE, dialog)
-    pygame.draw.rect(surface, _BLACK, dialog, width=1)
+    pygame.draw.rect(surface, _BLACK, dialog, width=theme.BORDER_WIDTH)
 
     message = confirmation_message(action)
     message_size = text_size(message, scale=theme.FONT_SCALE)
@@ -282,7 +282,7 @@ def draw_confirmation_dialog(surface: pygame.Surface, action: str, hovered: str 
         fg = _WHITE if is_hot else _BLACK
         if is_hot:
             surface.fill(_BLACK, rect)
-        pygame.draw.rect(surface, _BLACK, rect, width=1)
+        pygame.draw.rect(surface, _BLACK, rect, width=theme.BORDER_WIDTH)
         label_size = text_size(label, scale=theme.FONT_SCALE)
         label_rect = pygame.Rect(0, 0, *label_size)
         label_rect.center = rect.center
@@ -296,7 +296,7 @@ def draw_item(surface: pygame.Surface, center_x: int, top_y: int, item: ItemVisu
     bg_color = _BLACK if item.selected else _WHITE
 
     surface.fill(bg_color, rect)
-    pygame.draw.rect(surface, _BLACK, rect, width=1)
+    pygame.draw.rect(surface, _BLACK, rect, width=theme.BORDER_WIDTH)
 
     icon_rect = pygame.Rect(0, 0, theme.ICON_SIZE, theme.ICON_SIZE)
     icon_rect.centerx = center_x
