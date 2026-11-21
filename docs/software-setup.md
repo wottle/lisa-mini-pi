@@ -483,7 +483,7 @@ native 2048x1536, and the controller board upscales it (the panel's EDID
 lists 1024x768 at 60 and 75 Hz). `system/xsession-launcher.sh` does this
 with `xrandr` before the launcher starts. Reasons: every emulator here is
 set up for 1024x768 (so they render 1:1, with no software scaling) and the
-Pi pushes a quarter of the pixels. The author judged the picture good by
+Pi pushes a quarter of the pixels. I judged the picture good by
 eye; edge cropping and sharpness against native were not recorded
 separately. The console and boot splash still appear at the native mode.
 To use native instead, run `scripts/display-mode.sh native` and restart
@@ -511,7 +511,7 @@ on the guest, on a scratch copy of the disk image. The software renderer,
 `sdl_vsync false`, `idlewait true` and `screen win/1024/768` all stayed at
 ~11/s.
 
-**Reported by the author after the changes:** Basilisk II "looked great",
+**My impressions after the changes:** Basilisk II "looked great",
 Mini vMac "seems better", Previous "working well", LisaEm "looks great".
 LinApple was not checked. These are impressions, not benchmark scores.
 
@@ -529,7 +529,7 @@ layout at twice the size) and a guest running at native size
 (`screen dga/2048/1536`; very small UI, lots of workspace, some 33 ms
 gaps). The default upscale looked slightly soft. So the slowness was never
 the resolution. `display-mode.sh native` sets up the crisp variant. **Outcome:
-the author tried native on the panel and went back to 1024x768** - the UI
+I tried native on the panel and went back to 1024x768** - the UI
 is too small at native resolution. Also seen: Mini vMac (a fixed 1024x684
 build) showed as a small centred window; and LisaEm's "Fill 1024x768" mode
 (`vidmod_fill1024`) draws a 1024x728 bitmap scaled by `hidpi_scale`, i.e.

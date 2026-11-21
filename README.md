@@ -110,7 +110,7 @@ software as these are explored:
   revision needs regardless of which LCD panel it ends up paired with.
   See `hardware/assembly/README.md`'s "Future revision being explored"
   section for the parts and reasoning.
-  **Update 2026-11-21:** the author's Pi 5 build now uses an iPad 3/4
+  **Update 2026-11-21:** my Pi 5 build now uses an iPad 3/4
   panel (2048x1536 native), driven at 1024x768@60 with the panel's
   controller upscaling, so the launcher and emulators still see 1024x768
   (see `docs/software-setup.md` §9). Whether the case needed changes for

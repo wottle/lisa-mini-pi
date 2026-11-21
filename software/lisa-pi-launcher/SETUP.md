@@ -709,8 +709,8 @@ broken this in the past.
   (LinApple) emulator; the kernel `video=` route for a 1024x768 console;
   Speedometer scores (one run under synthetic mouse input left the guest
   unresponsive for over a minute for an unexplained reason - may be the
-  test harness). Mini vMac and Previous were reported working well by the
-  author but weren't measured.
+  test harness). Mini vMac and Previous work well for me, but I didn't
+  measure them.
 - **LisaEm "Fill 1024x768" mode: centring and pointer escape (2026-11-21).**
   The mode draws a 1024x728 bitmap, so a 1024x768 screen has 20 px margins
   above and below (40 px at native 2048x1536). Two problems, both in
