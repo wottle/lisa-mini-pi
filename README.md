@@ -37,8 +37,11 @@ specific build (Pi 4B/5, iPad 1/2 LCD panel, 1024x768). Nothing about
 that is locked in - expect breaking changes to the hardware and/or
 software as these are explored:
 
-- **An iPad 3/4 LCD panel**, for higher resolution than the current
-  iPad 1/2 panel.
+- **An iPad 3/4 LCD panel** (2048x1536 native). The author's Pi 5 build
+  now uses one, driven at 1024x768@60 with the panel's controller
+  upscaling, so the launcher and emulators still see 1024x768 (see
+  `docs/software-setup.md` §9). Whether the case needed changes for it is
+  not recorded here.
 - **Fitting a Pi 5 in the case alongside a power regulation board**,
   rather than the current external buck-converter setup.
 - **An 11.6" widescreen LCD front panel**, which would need real

@@ -202,7 +202,8 @@ which:
   `Conflicts=getty@tty1.service`) so it can start its own X session without
   needing a normal login session.
 - Starts `openbox` and this project's power-button watcher, then runs
-  `launcher.py` (see `system/xsession-launcher.sh`).
+  `launcher.py` (see `system/xsession-launcher.sh`). The same script sets
+  the connected HDMI output to 1024x768@60 first (see §9).
 - `Restart=always` respawns the kiosk if it or an emulator it launched
   ever crashes out to a shell.
 
@@ -226,6 +227,11 @@ Full install/build steps are in
 `software/lisa-pi-launcher/SETUP.md` §4, not duplicated here. Installed
 at `/usr/bin/BasiliskII` via `apt install basilisk2`, launched by the
 launcher with no extra flags — see `config.json`.
+
+**Set `frameskip 1` in `~/.config/BasiliskII/prefs`** (`provision.sh`
+writes it for a new Pi). The default gives only ~11 screen updates per
+second on a Pi 5, which makes the pointer and drawing jerky; `frameskip 1`
+gives ~61/s. Details and what made no difference: §9.
 
 **GPIO power button**: not wired up (§2 above) - the Debian-packaged
 build doesn't respond to a clean window-close/ADB-power-key request the
@@ -442,3 +448,75 @@ disable_splash=1
 
 With it set, boot goes straight from a brief black screen into the
 Plymouth splash above instead of showing the rainbow test pattern first.
+
+## 9. Display mode and performance (Pi 5 + iPad 3/4 panel)
+
+Findings from a diagnosis session on 2026-11-21: a Raspberry Pi 5 (4 GB,
+Debian 13, kernel 6.18) driving an iPad 3/4 panel (2048x1536 native)
+through an HDMI controller board (make/model not recorded). Everything
+below was measured on that one build unless marked otherwise.
+
+**Display mode.** The Pi is driven at **1024x768@60**, not the panel's
+native 2048x1536, and the controller board upscales it (the panel's EDID
+lists 1024x768 at 60 and 75 Hz). `system/xsession-launcher.sh` does this
+with `xrandr` before the launcher starts. Reasons: every emulator here is
+set up for 1024x768 (so they render 1:1, with no software scaling) and the
+Pi pushes a quarter of the pixels. The author judged the picture good by
+eye; edge cropping and sharpness against native were not recorded
+separately. The console and boot splash still appear at the native mode.
+To use native instead, run `scripts/display-mode.sh native` and restart
+the kiosk (`display-mode.sh 1024` goes back; `status` shows what is set).
+
+**Ruled out as the cause of slowness:** throttling or undervoltage
+(`get_throttled` = `0x0` throughout, 47-57 °C), the CPU clock (1.9 GHz idle,
+2.4 GHz within seconds of load under `ondemand`), the HDMI mode, GPU
+acceleration (glamor on V3D; Basilisk II uses the OpenGL renderer) and the
+SD card (93 MB/s sequential, 0.3 ms random 4 KB reads).
+
+**Fixed:**
+
+| Problem | Cause | Fix |
+|---|---|---|
+| Launcher didn't fill the 2048x1536 screen | fixed 1024x768 layout | `theme.apply_scale()` (whole-number scale, centred); a no-op at 1024x768 |
+| Launcher ~48.5% of a core when idle | full-frame redraw 30x/s | `redraw.py`: repaint only on change (~2-3% idle) |
+| Basilisk II mouse and drawing jerky | `frameskip` default 0 = ~11 updates/s | `frameskip 1` = ~61/s (0, 1 and 6 tried) |
+| LisaEm showed 1/4 of the screen | `hidpi_scale=200` in `~/.lisaem` | `hidpi_scale=100` at a 1024x768 output |
+| LisaEm picture pushed down 43 px and clipped, pointer "escapes" at the edges (intermittent, ~half of launches) | centred from the frame rectangle (sometimes 815 px tall); mouse released in the margins | local patch to `lisaem_wx.cpp`: centre from the client area, clamp the pointer in Fill mode (see SETUP.md Known gaps) |
+
+The Basilisk II rate was measured with an `LD_PRELOAD` shim counting
+`SDL_RenderPresent` calls per second while injected mouse motion circled
+on the guest, on a scratch copy of the disk image. The software renderer,
+`sdl_vsync false`, `idlewait true` and `screen win/1024/768` all stayed at
+~11/s.
+
+**Reported by the author after the changes:** Basilisk II "looked great",
+Mini vMac "seems better", Previous "working well", LisaEm "looks great".
+LinApple was not checked. These are impressions, not benchmark scores.
+
+**Not verified:** the controller board's scaling quality; sustained load
+or temperature with the case closed; the 5 V supply under heavy load; a
+Pi 4 at this mode; the Apple II emulator; the kernel `video=` route; and
+Speedometer scores (one run under synthetic mouse input left the guest
+unresponsive for over a minute, cause unknown - possibly the harness).
+
+**Native-resolution trial (2026-11-21).** Basilisk II with `frameskip 1`
+at the panel's native 2048x1536 held ~60 screen updates/s (measured, same
+method as above) in all three of: the default 2x upscale, `scale_nearest
+true` + `scale_integer true` (crisp pixel doubling; looks like the 1024x768
+layout at twice the size) and a guest running at native size
+(`screen dga/2048/1536`; very small UI, lots of workspace, some 33 ms
+gaps). The default upscale looked slightly soft. So the slowness was never
+the resolution. `display-mode.sh native` sets up the crisp variant. **Outcome:
+the author tried native on the panel and went back to 1024x768** - the UI
+is too small at native resolution. Also seen: Mini vMac (a fixed 1024x684
+build) showed as a small centred window; and LisaEm's "Fill 1024x768" mode
+(`vidmod_fill1024`) draws a 1024x728 bitmap scaled by `hidpi_scale`, i.e.
+2048x1456 on the 1536-tall screen - measured 40 px margins above and below,
+and the pointer stops controlling the Lisa while it is in them (the source
+only delivers the mouse while it is over the picture, `mouse_in_crt`). The
+same code leaves 20 px margins at 1024x768 (the mouse there was not
+tested). Previous and LinApple were not checked at native. Making native
+usable would need a Mini vMac rebuild with `-mf 4` (not done). A LisaEm
+patch that clamps the pointer to the picture edge and centres from the
+client area was made for the 1024x768 case (see the table above); it was
+not tested at native.
