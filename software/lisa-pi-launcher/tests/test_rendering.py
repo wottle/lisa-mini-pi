@@ -278,3 +278,102 @@ def test_draw_confirmation_dialog_runs_without_error_when_nothing_hovered():
 
     draw_confirmation_dialog(surface, "quit", hovered=None)
     # no exception is the assertion
+
+
+# --- resolution scaling (theme.apply_scale) ---------------------------------
+
+import contextlib
+
+
+@contextlib.contextmanager
+def _scaled(width, height):
+    """Apply the UI scale for a screen size, always restoring the 1x design."""
+    try:
+        yield theme.apply_scale(width, height)
+    finally:
+        theme.apply_scale(1024, 768)
+
+
+def _five_items():
+    return [ItemVisual(icon=_make_icon(), label=f"SYS{i}", status_icon=None,
+                       selected=(i == 0), subtitle="SUB") for i in range(5)]
+
+
+def test_apply_scale_at_design_size_keeps_the_original_1024x768_layout():
+    with _scaled(1024, 768) as scale:
+        assert scale == 1
+        assert (theme.PANEL_X, theme.PANEL_Y) == (48, 186)
+        assert (theme.PANEL_WIDTH, theme.PANEL_HEIGHT) == (928, 395)
+        assert theme.ICON_SIZE == 128 and theme.FONT_SCALE == 2
+
+
+def test_apply_scale_doubles_everything_and_centres_panel_on_2048x1536():
+    with _scaled(2048, 1536) as scale:
+        assert scale == 2
+        assert theme.ICON_SIZE == 256 and theme.FONT_SCALE == 4
+        assert theme.PANEL_WIDTH == 1856 and theme.PANEL_HEIGHT == 790
+        # centred on the screen
+        assert theme.PANEL_X == (2048 - theme.PANEL_WIDTH) // 2
+        assert theme.PANEL_Y == (1536 - theme.PANEL_HEIGHT) // 2
+        # the card height must still equal the sum of its scaled parts
+        name_h = text_size("X", scale=theme.FONT_SCALE)[1]
+        sub_h = text_size("X", scale=theme.SUBTITLE_FONT_SCALE)[1]
+        assert theme.ITEM_ROW_HEIGHT == (
+            theme.ITEM_BOX_PADDING_TOP + theme.ICON_SIZE + theme.ITEM_BOX_ICON_NAME_GAP
+            + name_h + theme.ITEM_BOX_NAME_SUBTITLE_GAP + sub_h + theme.ITEM_BOX_PADDING_BOTTOM
+        )
+
+
+def test_apply_scale_is_idempotent_not_cumulative():
+    with _scaled(2048, 1536):
+        theme.apply_scale(2048, 1536)
+        theme.apply_scale(2048, 1536)
+        assert theme.ICON_SIZE == 256 and theme.PANEL_WIDTH == 1856
+
+
+def test_apply_scale_non_integer_screen_uses_largest_whole_multiple_and_centres():
+    with _scaled(1920, 1080) as scale:
+        assert scale == 1  # 1920//1024 = 1, 1080//768 = 1
+        assert theme.PANEL_X == (1920 - 928) // 2
+        assert theme.PANEL_Y == (1080 - 395) // 2
+    # a screen smaller than the design never goes below 1x
+    with _scaled(800, 600) as scale:
+        assert scale == 1
+
+
+def test_scaled_layout_fits_inside_the_2048x1536_screen_and_hit_tests_work():
+    with _scaled(2048, 1536):
+        screen = pygame.Surface((2048, 1536))
+        items = _five_items()
+        bounds = screen.get_rect()
+        panel = pygame.Rect(theme.PANEL_X, theme.PANEL_Y, theme.PANEL_WIDTH, theme.PANEL_HEIGHT)
+        assert bounds.contains(panel)
+        rects = item_layout(items)
+        assert len(rects) == 5
+        for rect in rects:
+            assert panel.contains(rect)
+        # every card centre hits its own card
+        for index, rect in enumerate(rects):
+            assert hit_test(items, rect.center) == index
+        # footer buttons stay inside the panel and are hit-testable
+        for name, rect in footer_layout(items).items():
+            assert panel.contains(rect)
+            assert footer_hit_test(items, rect.center) == name
+        # confirmation dialog buttons are centred on the real screen
+        dialog_buttons = confirmation_button_layout()
+        for name, rect in dialog_buttons.items():
+            assert bounds.contains(rect)
+            assert confirmation_hit_test(rect.center) == name
+
+
+def test_render_frame_at_2048x1536_draws_the_panel_across_the_screen():
+    with _scaled(2048, 1536):
+        screen = pygame.Surface((2048, 1536))
+        draw_checkerboard(screen, theme.CHECKER_CELL_SIZE)
+        render_frame(screen, "CHOOSE YOUR ADVENTURE", _five_items())
+        # inside the panel (just past its border) is white; a pixel in the
+        # margin outside it is still the checkerboard (black or white cell)
+        inside = screen.get_at((theme.PANEL_X + 4, theme.PANEL_Y + 4))[:3]
+        assert inside == (255, 255, 255)
+        # the panel spans (nearly) the full width: >90% of the screen
+        assert theme.PANEL_WIDTH / 2048 > 0.9

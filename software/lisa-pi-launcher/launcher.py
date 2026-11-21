@@ -69,6 +69,7 @@ from rendering import (
     hit_test,
     render_frame,
 )
+from redraw import RedrawGate
 from state import LauncherState, Phase
 
 # The Lisa-style boot-diagnostic animation (CPU/MEM/I/O/EXPANSION test,
@@ -79,8 +80,24 @@ from state import LauncherState, Phase
 # doesn't import or call it anymore.
 
 
+# Window events after which the screen contents may be stale and must be
+# repainted even though nothing in the launcher's own state changed.
+_REPAINT_EVENTS = tuple(
+    getattr(pygame, name) for name in (
+        "VIDEOEXPOSE", "WINDOWEXPOSED", "WINDOWSHOWN", "WINDOWRESTORED",
+        "WINDOWMAXIMIZED", "WINDOWFOCUSGAINED", "WINDOWENTER",
+    ) if hasattr(pygame, name)
+)
+
+
 def _load_icon(path: str) -> pygame.Surface:
-    return pygame.image.load(path).convert()
+    icon = pygame.image.load(path).convert()
+    # The icon PNGs are 128px. On a larger panel theme.apply_scale() has
+    # already grown ICON_SIZE by a whole multiple, so enlarge to match with
+    # nearest-neighbour (crisp pixel art, no blur). Must run after apply_scale().
+    if icon.get_size() != (theme.ICON_SIZE, theme.ICON_SIZE):
+        icon = pygame.transform.scale(icon, (theme.ICON_SIZE, theme.ICON_SIZE))
+    return icon
 
 
 def _system_items_visual(state: LauncherState, icons: dict[str, pygame.Surface]) -> list[ItemVisual]:
@@ -130,11 +147,9 @@ def _draw_confirmation(
 
 def _open_fullscreen() -> pygame.Surface:
     # (0, 0) tells SDL to use the current desktop resolution for fullscreen,
-    # so the launcher fills whatever display it's actually running on
-    # instead of a fixed 1024x768 that may not match the real panel. The
-    # picker's own content is still laid out for a fixed 1024x768 (see
-    # theme.py) - on a differently-sized display it draws at that fixed
-    # size/position rather than adapting, which is an accepted tradeoff.
+    # so the launcher fills whatever display it's actually running on.
+    # The picker's layout is the 1024x768 design scaled by a whole number
+    # and centred - main() calls theme.apply_scale() with the surface size.
     return pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 
 
@@ -151,6 +166,7 @@ def main() -> None:
     pygame.event.set_grab(True)
 
     real_screen = _open_fullscreen()
+    theme.apply_scale(*real_screen.get_size())
     clock = pygame.time.Clock()
 
     systems = load_config("config.json")
@@ -182,10 +198,15 @@ def main() -> None:
     running = True
     hovered_footer: str | None = None
     hovered_confirm: str | None = None
+    # Only repaint when something visible changed (see redraw.py) - drawing
+    # the full frame 30x/s while idle kept a core near 50% busy.
+    gate = RedrawGate(refresh_seconds=1.0)
     while running:
         clock.tick(30)
 
         for event in pygame.event.get():
+            if event.type in _REPAINT_EVENTS:
+                gate.invalidate()
             if event.type in _DIAG_EVENT_NAMES:
                 grab_state = pygame.event.get_grab()
                 active_state = pygame.display.get_active()
@@ -229,6 +250,7 @@ def main() -> None:
                     state.move_selection(1)
                 elif event.key == pygame.K_RETURN:
                     real_screen = _launch_selected(state, real_screen, icons)
+                    gate.invalidate()
                 elif event.key == pygame.K_s:
                     state.request_confirmation("shutdown")
                     hovered_footer = None
@@ -261,12 +283,18 @@ def main() -> None:
                     if index is not None:
                         state.select_index(index)
                         real_screen = _launch_selected(state, real_screen, icons)
+                        gate.invalidate()
 
-        items = _system_items_visual(state, icons)
-        if state.phase == Phase.CONFIRMING:
-            _draw_confirmation(real_screen, state.header_text(), items, state.pending_action, hovered_confirm)
-        else:
-            _draw_frame(real_screen, state.header_text(), items, hovered_footer)
+        view_key = (
+            state.phase, state.selected_index, state.header_text(),
+            state.pending_action, hovered_footer, hovered_confirm,
+        )
+        if gate.should_draw(view_key):
+            items = _system_items_visual(state, icons)
+            if state.phase == Phase.CONFIRMING:
+                _draw_confirmation(real_screen, state.header_text(), items, state.pending_action, hovered_confirm)
+            else:
+                _draw_frame(real_screen, state.header_text(), items, hovered_footer)
 
     pygame.quit()
 
