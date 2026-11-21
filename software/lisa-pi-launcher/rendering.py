@@ -17,6 +17,8 @@ _FOOTER_LEFT = "< > SELECT"
 _FOOTER_CENTER = "RETURN OR CLICK TO START"
 _FOOTER_SHUTDOWN = "S SHUT DOWN"
 _FOOTER_QUIT = "Q QUIT"
+_FOOTER_AUTO = "A AUTO"
+_AUTO_TAG_TEXT = "AUTO"
 
 # Cache for the checkerboard: it's fully deterministic for a given surface
 # size, so it's built once and blitted from then on rather than redrawing
@@ -32,6 +34,7 @@ class ItemVisual:
     status_icon: pygame.Surface | None
     selected: bool
     subtitle: str = ""
+    auto: bool = False  # this is the system that starts automatically at power-on
 
 
 def draw_checkerboard(surface: pygame.Surface, cell_size: int) -> None:
@@ -181,6 +184,31 @@ def _footer_button_rect(label: str, right_x: int, top_y: int) -> pygame.Rect:
     return rect
 
 
+def auto_tag_rect(card: pygame.Rect) -> pygame.Rect:
+    """The "AUTO" tag's rect for a card: its top-right corner, inset a little.
+    Pure layout math shared by drawing and tests."""
+    text_w = text_size(_AUTO_TAG_TEXT, scale=theme.AUTO_TAG_FONT_SCALE)[0]
+    width = text_w + 2 * theme.AUTO_TAG_PADDING_X
+    return pygame.Rect(
+        card.right - theme.AUTO_TAG_INSET - width,
+        card.top + theme.AUTO_TAG_INSET,
+        width,
+        theme.AUTO_TAG_HEIGHT,
+    )
+
+
+def footer_auto_hint_rect(items: list[ItemVisual]) -> pygame.Rect:
+    """Where the "A AUTO" key hint goes: centred in the free gap between the
+    "< > SELECT" text and the centred "RETURN OR CLICK TO START" text."""
+    row_count = _row_count(len(items))
+    interior = panel_interior_rect(row_count=row_count)
+    left_end = interior.left + text_size(_FOOTER_LEFT, scale=theme.FONT_SCALE)[0]
+    centre_start = interior.centerx - text_size(_FOOTER_CENTER, scale=theme.FONT_SCALE)[0] // 2
+    width, height = text_size(_FOOTER_AUTO, scale=theme.FONT_SCALE)
+    left = left_end + (centre_start - left_end - width) // 2
+    return pygame.Rect(left, _footer_y(interior, row_count), width, height)
+
+
 def footer_layout(items: list[ItemVisual]) -> dict[str, pygame.Rect]:
     """SHUT DOWN/QUIT button rects, in screen coordinates, in the same
     positions render_frame actually draws them at - used both for
@@ -322,6 +350,14 @@ def draw_item(surface: pygame.Surface, center_x: int, top_y: int, item: ItemVisu
             scale=theme.SUBTITLE_FONT_SCALE, color=fg_color,
         )
 
+    if item.auto:
+        tag = auto_tag_rect(rect)
+        tag_bg, tag_fg = (_WHITE, _BLACK) if item.selected else (_BLACK, _WHITE)
+        surface.fill(tag_bg, tag)
+        text_h = text_size(_AUTO_TAG_TEXT, scale=theme.AUTO_TAG_FONT_SCALE)[1]
+        render_text(surface, _AUTO_TAG_TEXT, tag.left + theme.AUTO_TAG_PADDING_X,
+                    tag.top + (tag.height - text_h) // 2, scale=theme.AUTO_TAG_FONT_SCALE, color=tag_fg)
+
     if item.status_icon:
         status_rect = pygame.Rect(0, 0, theme.CHECK_ICON_SIZE, theme.CHECK_ICON_SIZE)
         status_rect.centerx = center_x
@@ -392,6 +428,9 @@ def render_frame(
         surface, _FOOTER_CENTER, interior.centerx - center_size[0] // 2, footer_y,
         scale=theme.FONT_SCALE, color=_BLACK,
     )
+
+    hint = footer_auto_hint_rect(items)
+    render_text(surface, _FOOTER_AUTO, hint.left, hint.top, scale=theme.FONT_SCALE, color=_BLACK)
 
     footer_buttons = footer_layout(items)
     pad = theme.FOOTER_BUTTON_PADDING

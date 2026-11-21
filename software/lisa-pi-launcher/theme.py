@@ -106,6 +106,13 @@ CONFIRM_DIALOG_BUTTONS_BOTTOM_GAP = 64  # dialog bottom -> buttons row
 CONFIRM_BUTTON_GAP = 48    # horizontal gap between CONFIRM and CANCEL
 CONFIRM_BUTTON_PADDING = 10  # padding around each button's text, both axes
 
+# The small "AUTO" tag in the top-right corner of the auto-start card. The
+# tag's width follows its text; these are the gaps and the height.
+AUTO_TAG_INSET = 6        # gap from the card's top and right edges
+AUTO_TAG_PADDING_X = 4    # padding left and right of the lettering
+AUTO_TAG_HEIGHT = 13
+AUTO_TAG_FONT_SCALE = 1
+
 # Boot diagnostic animation timing - unused while the diagnostic phase is
 # disabled in launcher.py, kept for boot_diag.py's own tests/possible
 # future re-add.
@@ -149,6 +156,7 @@ _SCALED_NAMES = (
     "CONFIRM_DIALOG_MESSAGE_TOP_GAP", "CONFIRM_DIALOG_BUTTONS_BOTTOM_GAP",
     "CONFIRM_BUTTON_GAP", "CONFIRM_BUTTON_PADDING",
     "CHECKER_CELL_SIZE",
+    "AUTO_TAG_INSET", "AUTO_TAG_PADDING_X", "AUTO_TAG_HEIGHT", "AUTO_TAG_FONT_SCALE",
 )
 _BASE = {name: globals()[name] for name in _SCALED_NAMES}
 _BASE_SCREEN = (SCREEN_WIDTH, SCREEN_HEIGHT)

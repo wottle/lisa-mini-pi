@@ -69,6 +69,7 @@ from rendering import (
     hit_test,
     render_frame,
 )
+from autostart import AutoStart
 from redraw import RedrawGate
 from state import LauncherState, Phase
 
@@ -100,7 +101,9 @@ def _load_icon(path: str) -> pygame.Surface:
     return icon
 
 
-def _system_items_visual(state: LauncherState, icons: dict[str, pygame.Surface]) -> list[ItemVisual]:
+def _system_items_visual(
+    state: LauncherState, icons: dict[str, pygame.Surface], auto_id: str | None = None,
+) -> list[ItemVisual]:
     items = []
     for index, system in enumerate(state.systems):
         items.append(ItemVisual(
@@ -109,6 +112,7 @@ def _system_items_visual(state: LauncherState, icons: dict[str, pygame.Surface])
             status_icon=None,
             selected=(index == state.selected_index),
             subtitle=system.subtitle,
+            auto=(system.id == auto_id),
         ))
     return items
 
@@ -153,7 +157,9 @@ def _open_fullscreen() -> pygame.Surface:
     return pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 
 
-def main() -> None:
+def main(store: AutoStart | None = None) -> None:
+    if store is None:
+        store = AutoStart.default()
     pygame.init()
     pygame.mouse.set_visible(True)
     cursor.set_cursor()
@@ -201,6 +207,17 @@ def main() -> None:
     # Only repaint when something visible changed (see redraw.py) - drawing
     # the full frame 30x/s while idle kept a core near 50% busy.
     gate = RedrawGate(refresh_seconds=1.0)
+
+    # The system marked to start automatically (press A on a highlighted system).
+    auto_id = store.get()
+    # Power-on auto-start: once per boot only, so a restart of the launcher
+    # later in the same boot shows the picker (see autostart.py).
+    start_now = store.startup([system.id for system in systems])
+    if start_now is not None:
+        state.select_index([system.id for system in systems].index(start_now))
+        real_screen = _launch_selected(state, real_screen, icons, auto_id)
+        gate.invalidate()
+
     while running:
         clock.tick(30)
 
@@ -249,7 +266,7 @@ def main() -> None:
                 elif event.key == pygame.K_RIGHT:
                     state.move_selection(1)
                 elif event.key == pygame.K_RETURN:
-                    real_screen = _launch_selected(state, real_screen, icons)
+                    real_screen = _launch_selected(state, real_screen, icons, auto_id)
                     gate.invalidate()
                 elif event.key == pygame.K_s:
                     state.request_confirmation("shutdown")
@@ -263,34 +280,36 @@ def main() -> None:
                 elif event.key == pygame.K_q:
                     state.request_confirmation("quit")
                     hovered_footer = None
+                elif event.key == pygame.K_a:
+                    auto_id = store.toggle(state.selected.id)
             elif event.type == pygame.MOUSEMOTION:
                 # Hover selects, mirroring the arrow keys - so someone
                 # without a keyboard can see what they're about to pick
                 # before committing with a click. event.pos is already in
                 # screen coordinates, matching item_layout()/hit_test()
                 # directly now that there's no separate logical surface.
-                index = hit_test(_system_items_visual(state, icons), event.pos)
+                index = hit_test(_system_items_visual(state, icons, auto_id), event.pos)
                 if index is not None:
                     state.select_index(index)
-                hovered_footer = footer_hit_test(_system_items_visual(state, icons), event.pos)
+                hovered_footer = footer_hit_test(_system_items_visual(state, icons, auto_id), event.pos)
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                footer_choice = footer_hit_test(_system_items_visual(state, icons), event.pos)
+                footer_choice = footer_hit_test(_system_items_visual(state, icons, auto_id), event.pos)
                 if footer_choice is not None:
                     state.request_confirmation(footer_choice)
                     hovered_footer = None
                 else:
-                    index = hit_test(_system_items_visual(state, icons), event.pos)
+                    index = hit_test(_system_items_visual(state, icons, auto_id), event.pos)
                     if index is not None:
                         state.select_index(index)
-                        real_screen = _launch_selected(state, real_screen, icons)
+                        real_screen = _launch_selected(state, real_screen, icons, auto_id)
                         gate.invalidate()
 
         view_key = (
             state.phase, state.selected_index, state.header_text(),
-            state.pending_action, hovered_footer, hovered_confirm,
+            state.pending_action, hovered_footer, hovered_confirm, auto_id,
         )
         if gate.should_draw(view_key):
-            items = _system_items_visual(state, icons)
+            items = _system_items_visual(state, icons, auto_id)
             if state.phase == Phase.CONFIRMING:
                 _draw_confirmation(real_screen, state.header_text(), items, state.pending_action, hovered_confirm)
             else:
@@ -303,13 +322,14 @@ def _launch_selected(
     state: LauncherState,
     real_screen: pygame.Surface,
     icons: dict[str, pygame.Surface],
+    auto_id: str | None = None,
 ) -> pygame.Surface:
     state.start_selected()
 
     # Render and flip one STARTING-phase frame first, so the
     # "STARTING <NAME>..." header text is actually visible for a moment
     # rather than being set and discarded before the next flip.
-    items = _system_items_visual(state, icons)
+    items = _system_items_visual(state, icons, auto_id)
     _draw_frame(real_screen, state.header_text(), items)
 
     # Cover the screen in solid black and leave this window mapped, rather
@@ -379,7 +399,7 @@ def _launch_selected(
         pygame.event.clear()
 
     if launch_failed:
-        _draw_frame(real_screen, "LAUNCH FAILED", _system_items_visual(state, icons))
+        _draw_frame(real_screen, "LAUNCH FAILED", _system_items_visual(state, icons, auto_id))
         pygame.time.wait(1000)
 
     return real_screen
