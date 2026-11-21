@@ -16,6 +16,20 @@
 # invisible/chromeless, matching the no-window-manager look.
 openbox &
 
+# Drive the panel at 1024x768@60 and let the LCD controller board upscale it
+# to the iPad 3/4 panel's native 2048x1536. The Pi pushes a quarter of the
+# pixels and every emulator (all set up for 1024x768) renders 1:1 with no
+# software scaling. Picks whichever output is connected instead of
+# hard-coding HDMI-2; if the mode is not offered this is a harmless no-op and
+# the launcher just scales its layout to whatever size X came up at.
+# To use the panel's native mode instead, run scripts/display-mode.sh native
+# (it creates the marker file checked below, and adjusts Basilisk II and
+# LisaEm to match); scripts/display-mode.sh 1024 undoes it.
+if [ ! -e "$HOME/.config/lisa-launcher/native-resolution" ]; then
+  OUT=$(xrandr 2>/dev/null | awk '/ connected/{print $1; exit}')
+  [ -n "$OUT" ] && xrandr --output "$OUT" --mode 1024x768 --rate 60 2>/dev/null || true
+fi
+
 cd /home/wottle/lisa-mini-pi/software/lisa-pi-launcher || exit 1
 
 # Non-blocking startup dependency check: logs missing binaries/ROM-disk
