@@ -34,10 +34,16 @@ The stock `arcanebyte/lisaem` has a couple of Linux/ARM-specific bugs.
 > them into `pi4-lisa-fixes`: that line plus my Fill-mode pointer-clamp fix
 > and the F12 power-key handler. `lisa-fixes-1024x768` is left in the fork as
 > history. The list below was written for the older branch; `pi4-lisa-fixes`
-> has its own versions of the Fill mode and signed-char fixes. **Built and run
-> on the Lisa Mini (Pi 4) only; I have not yet rebuilt it on the Pi 5 or run a
-> fresh `provision.sh` against it.** I did not check whether the older
-> branch's HQX 3.5x display fix is covered.
+> has its own versions of the Fill mode and signed-char fixes. On 2026-11-21 I
+> also merged `arcanebyte/lisaem` `master` (27 commits) into it; the fork's
+> `master` is now a plain mirror of upstream, so updating is a
+> `git merge upstream/master` into `pi4-lisa-fixes`. **Built and run on the
+> Lisa Mini (Pi 4) only; I have not yet rebuilt it on the Pi 5 or run a fresh
+> `provision.sh` against it.** I did not check whether the older branch's HQX
+> 3.5x display fix is covered. On the Pi 4, changing the emulated CPU speed
+> from the menu can stall the window for a while before it recovers (also seen
+> before the merge; I did not measure how long or find the cause), so I set a
+> speed once and leave it.
 
 - The Power Button menu item never had a working keyboard shortcut, on any
   platform — menu labels alone don't create working accelerators in this
