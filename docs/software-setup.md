@@ -38,8 +38,8 @@ The stock `arcanebyte/lisaem` has a couple of Linux/ARM-specific bugs.
 > also merged `arcanebyte/lisaem` `master` (27 commits) into it; the fork's
 > `master` is now a plain mirror of upstream, so updating is a
 > `git merge upstream/master` into `pi4-lisa-fixes`. **Built and run on the
-> Lisa Mini (Pi 4) only; I have not yet rebuilt it on the Pi 5 or run a fresh
-> `provision.sh` against it.** I did not check whether the older branch's HQX
+> Lisa Mini (Pi 4) and rebuilt on the Pi 5; on the Pi 5 I checked Fill mode and
+> the power button only. I have not run a fresh `provision.sh` against it.** I did not check whether the older branch's HQX
 > 3.5x display fix is covered. On the Pi 4, changing the emulated CPU speed
 > from the menu can stall the window for a while before it recovers (also seen
 > before the merge; I did not measure how long or find the cause), so I set a
