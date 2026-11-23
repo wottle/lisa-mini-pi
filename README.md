@@ -92,8 +92,9 @@ launch. Once inside an emulator, shut it down from the guest OS itself
   blank card (Raspberry Pi OS Lite 64-bit, user name `admin`), then my own
   ROM and disk images. All five systems launch from the picker and work. A
   Lisa disk image that was already installed elsewhere needs its hardware
-  identity copied across (see `docs/software-setup.md` §1). Not tested on
-  that Pi: the GPIO power button and LED, and a closed case.
+  identity copied across (see `docs/software-setup.md` §1). I then wired
+  an LED and a switch to its GPIO pins on the bench, and the lit power
+  button works as expected. Not tested on that Pi: a closed case.
 - **Pi 5 with an iPad 3/4 LCD and its controller.** The same patched LisaEm
   branch (`pi4-lisa-fixes`) built and running there; I checked Fill mode and
   the front power button. I have not re-checked everything else there

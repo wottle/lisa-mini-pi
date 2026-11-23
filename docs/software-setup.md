@@ -22,8 +22,10 @@ never installed (the power-button watcher needs it); the low-RAM warning
 fired on a 2 GB Pi 4; and `git` has to be installed before the clone. After
 placing my own ROM and disk images, all five systems launched from the
 picker and worked. LisaEm needed the identity fix above, because I used a
-disk image that had already been installed. I have not run the GPIO
-power button on that Pi, and did not test it in a closed case.
+disk image that had already been installed. I did not try the GPIO
+power button until afterwards, when I connected an LED and a switch to
+the GPIO pins on the bench; it worked as expected. I did not test it in
+a closed case.
 
 **Pi 3B note (as of 2026-09-25):** only LisaEm, Basilisk II, and Mini
 vMac are installed on the project's Pi 3B - it doesn't have the
