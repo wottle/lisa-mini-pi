@@ -263,7 +263,7 @@ step "8.5. Emulator config templates (LisaEm, Basilisk II, Previous)"
 # specific value - correct for a freshly-installed Lisa OS, but if you're
 # instead reusing an *already-established* disk image (one that's booted
 # successfully elsewhere before), it may reject this identity with
-# "Error 10738" - see docs/software-setup.md §3 for the fix (copying the
+# "Error 10738" - see docs/software-setup.md §1 for the fix (copying the
 # serialnumber/PRAM that disk already expects from wherever it last
 # booted successfully).
 
@@ -507,7 +507,7 @@ cat <<EOF
      If you're instead reusing an *already-established* Lisa disk image
      (one that's booted successfully elsewhere before, not a fresh
      install), it may reject LisaEm's default identity with
-     "Error 10738" - see docs/software-setup.md §3 for the fix.
+     "Error 10738" - see docs/software-setup.md §1 for the fix.
 
   2. Wire the physical GPIO power button/LED (see
      docs/software-setup.md §2): GPIO18 (pin 12) -> LED -> GND (e.g.

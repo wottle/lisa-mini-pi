@@ -86,6 +86,19 @@ launch. Once inside an emulator, shut it down from the guest OS itself
 
 ## Project status: work in progress
 
+**Verified so far:**
+
+- **Fresh install on a Pi 4 (2 GB), 2026-11-23.** `provision.sh` run from a
+  blank card (Raspberry Pi OS Lite 64-bit, user name `admin`), then my own
+  ROM and disk images. All five systems launch from the picker and work. A
+  Lisa disk image that was already installed elsewhere needs its hardware
+  identity copied across (see `docs/software-setup.md` §1). Not tested on
+  that Pi: the GPIO power button and LED, and a closed case.
+- **Pi 5 with an iPad 3/4 LCD and its controller.** The same patched LisaEm
+  branch (`pi4-lisa-fixes`) built and running there; I checked Fill mode and
+  the front power button. I have not re-checked everything else there
+  (for example the pointer at the picture edges or Fit to Window).
+
 **Hardware support**: the full software stack (all five emulators, the
 kiosk launcher, `provision.sh`) has been fully tested end-to-end on both
 a Pi 3 and a Pi 5, in addition to the **Pi 4, which remains the
@@ -140,6 +153,12 @@ all five systems confirmed working on the bare board first (see
 the case around it (`hardware/assembly/README.md`). Debugging a wiring
 or software issue is far easier with everything exposed on a desk than
 after it's screwed and glued into a closed case.
+
+Start from a fresh **Raspberry Pi OS 64-bit** (Debian 13 "trixie") on a
+card of at least 32 GB. The Lite image works: the script installs whatever
+it needs that Lite leaves out. In Raspberry Pi Imager's settings, set a
+hostname, a user name and password (any user name works), and enable ssh,
+then log in and run:
 
 ```
 sudo apt install -y git

@@ -13,6 +13,18 @@ that script does and why; read a section here if a step needs more
 context than the script's own comments give, or if you're doing
 something by hand instead.
 
+**Fresh-install test (2026-11-23).** I ran `provision.sh` start to finish
+on a new 2 GB Raspberry Pi 4 with Raspberry Pi OS Lite 64-bit (Debian 13
+"trixie"), under the user name `admin` rather than `wottle`. That run found
+and fixed five problems: the install assumed a user named `wottle`; the
+Lite image has no Plymouth (needed for the boot splash); `xdotool` was
+never installed (the power-button watcher needs it); the low-RAM warning
+fired on a 2 GB Pi 4; and `git` has to be installed before the clone. After
+placing my own ROM and disk images, all five systems launched from the
+picker and worked. LisaEm needed the identity fix above, because I used a
+disk image that had already been installed. I have not run the GPIO
+power button on that Pi, and did not test it in a closed case.
+
 **Pi 3B note (as of 2026-09-25):** only LisaEm, Basilisk II, and Mini
 vMac are installed on the project's Pi 3B - it doesn't have the
 power/performance headroom for Previous and LinApple as well. `config.json`
@@ -103,6 +115,38 @@ GTK prefers native Wayland whenever `WAYLAND_DISPLAY` is set (even with
 `DISPLAY` also set), which makes LisaEm's window invisible to X11 tools
 like `xdotool` — which the power-button watcher depends on to send it the
 F12 keypress.
+
+### Reusing an existing Lisa disk image (Error 10738)
+
+`provision.sh` seeds `~/lisaem.conf` with LisaEm's blank hardware identity
+(`serialnumber=ff000000...`, an all-zero `[pram]` block). That is right for
+a Lisa Office System installed fresh from floppies, which sets up its own
+identity on first boot. A disk image that has already booted on another
+LisaEm remembers *that* identity and refuses a different one with
+**Error 10738** ("Checksum failure or too many hardware config changes").
+
+**Seen on a fresh install (2026-11-23).** I set up a Pi 4 from scratch with
+`provision.sh` and dropped in the `lisaem-widget.dc42` from my Pi 5. LisaEm
+showed Error 10738 on the first launch. The other four systems worked.
+
+**The fix that worked:** take `~/lisaem.conf` from the machine the disk
+already boots on, change its paths to this Pi's home directory, and use it
+in place of the seeded one:
+
+```
+scp otherpi:lisaem.conf /tmp/lisaem.conf
+sed -i "s|/home/otheruser|$HOME|g" /tmp/lisaem.conf
+cp ~/lisaem.conf ~/lisaem.conf.provisioned      # keep the seeded one
+cp /tmp/lisaem.conf ~/lisaem.conf
+```
+
+That brought over the serial number, the `[pram]` and `[clock]` blocks and
+a few model settings (`ioromver`, `hle`, `4mbmacworks`) in one go. I did
+not try copying only `serialnumber` and `[pram]` (which
+`software/lisa-pi-launcher/SETUP.md` suggests is enough), so I can't say
+whether that alone would have worked. Make the change while LisaEm is not
+running. It rewrites its config files when it exits, so a change made
+while it is open can be overwritten.
 
 ## 2. GPIO power button and LED
 
