@@ -30,7 +30,7 @@
 #                                   # them (see docs/software-setup.md's
 #                                   # Pi 3B note); this script warns and
 #                                   # suggests this automatically on a
-#                                   # <2GB-RAM machine, but never decides
+#                                   # <1.5GB-RAM machine, but never decides
 #                                   # for you.
 #   ./provision.sh --skip-boot-splash
 #                                   # skip the custom boot splash/rainbow
