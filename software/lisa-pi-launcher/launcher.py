@@ -56,6 +56,7 @@ def _diag_log(msg: str) -> None:
         pass
 
 import cursor
+import session
 import theme
 import x11focus
 from bitmap_font import CHAR_WIDTH  # noqa: F401 (documents the font dependency)
@@ -190,15 +191,9 @@ def main(store: AutoStart | None = None) -> None:
         if action == "shutdown":
             subprocess.run(["systemctl", "poweroff"])
             return True
-        # action == "quit": suppress the watchdog first - it doesn't know
-        # about the desktop session and would otherwise see no
-        # launcher/emulator process running and restart the kiosk out
-        # from under it within 30s. Starting lightdm.service is what
-        # actually switches sessions (see launcher.service's
-        # Conflicts=lightdm.service - starting it auto-stops us, which is
-        # why this is the last action taken here).
-        subprocess.run(["systemctl", "stop", "launcher-watchdog.timer"])
-        subprocess.run(["systemctl", "start", "lightdm.service"])
+        # action == "quit": the desktop if this machine has one, otherwise a
+        # text console login (Raspberry Pi OS Lite). See session.py.
+        session.quit_to_session()
         return False
 
     running = True

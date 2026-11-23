@@ -16,10 +16,14 @@ something by hand instead.
 **Fresh-install test (2026-11-23).** I ran `provision.sh` start to finish
 on a new 2 GB Raspberry Pi 4 with Raspberry Pi OS Lite 64-bit (Debian 13
 "trixie"), under the user name `admin` rather than `wottle`. That run found
-and fixed five problems: the install assumed a user named `wottle`; the
+and fixed six problems: the install assumed a user named `wottle`; the
 Lite image has no Plymouth (needed for the boot splash); `xdotool` was
 never installed (the power-button watcher needs it); the low-RAM warning
-fired on a 2 GB Pi 4; and `git` has to be installed before the clone. After
+fired on a 2 GB Pi 4; `git` has to be installed before the clone; and
+Quit ("Q") only worked on a machine with the desktop (it started
+`lightdm`, which Lite does not have, so the launcher just restarted). Quit
+now falls back to a text console login when there is no `lightdm`. I have
+unit-tested that choice, but have not yet tried it at the panel. After
 placing my own ROM and disk images, all five systems launched from the
 picker and worked. LisaEm needed the identity fix above, because I used a
 disk image that had already been installed. I did not try the GPIO

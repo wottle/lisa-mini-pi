@@ -25,15 +25,16 @@ polkit.addRule(function(action, subject) {
     }
 });
 
-// Allow starting/stopping specifically these three units without
+// Allow starting/stopping specifically these four units without
 // authentication - the kiosk-launcher.service <-> lightdm.service
-// switch (see launcher.py's Q key and system/back-to-kiosk.sh) and the
-// watchdog timer that needs suppressing while the desktop session owns
-// the display. Scoped to just these unit names, not a blanket grant of
+// switch (see launcher.py's Q key and system/back-to-kiosk.sh), the
+// getty@tty1 text console that Q uses instead on Raspberry Pi OS Lite
+// (no desktop; see session.py), and the watchdog timer that needs
+// suppressing while another session owns the display. Scoped to just these unit names, not a blanket grant of
 // org.freedesktop.systemd1.manage-units.
 polkit.addRule(function(action, subject) {
     if (action.id == "org.freedesktop.systemd1.manage-units" && subject.user === "wottle") {
-        var allowedUnits = ["launcher.service", "launcher-watchdog.timer", "lightdm.service"];
+        var allowedUnits = ["launcher.service", "launcher-watchdog.timer", "lightdm.service", "getty@tty1.service"];
         if (allowedUnits.indexOf(action.lookup("unit")) !== -1) {
             return polkit.Result.YES;
         }
