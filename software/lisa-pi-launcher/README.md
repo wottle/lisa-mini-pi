@@ -22,12 +22,12 @@ Press Escape... actually there is no Escape/quit binding by design (it's a
 kiosk); use Ctrl+C in the terminal you launched it from during development,
 or `S`/`R`/`Q` to shut down/reboot/switch to the full desktop on real
 hardware. `Q` goes to the desktop (`lightdm`) if the machine has one, and
-to a text console login (`getty@tty1`) if it does not (Raspberry Pi OS
-Lite); see `session.py`. The desktop's way back is
-`system/back-to-kiosk.desktop`; from the console, log in and run
-`system/back-to-kiosk.sh`. The polkit rule in `system/` must be installed
-(`provision.sh` does it) or the start is refused and the kiosk just
-respawns via `Restart=always`.
+opens a full-screen terminal (`xterm`, inside the kiosk's own X session)
+if it does not (Raspberry Pi OS Lite); see `session.py`. The desktop's way
+back is `system/back-to-kiosk.desktop`; from the terminal, type `exit` and
+the picker returns. For the desktop path the polkit rule in `system/` must
+be installed (`provision.sh` does it) or the start is refused and the
+kiosk just respawns via `Restart=always`.
 
 ## Configuration
 

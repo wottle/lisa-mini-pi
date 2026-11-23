@@ -21,9 +21,14 @@ Lite image has no Plymouth (needed for the boot splash); `xdotool` was
 never installed (the power-button watcher needs it); the low-RAM warning
 fired on a 2 GB Pi 4; `git` has to be installed before the clone; and
 Quit ("Q") only worked on a machine with the desktop (it started
-`lightdm`, which Lite does not have, so the launcher just restarted). Quit
-now falls back to a text console login when there is no `lightdm`. I have
-unit-tested that choice, but have not yet tried it at the panel. After
+`lightdm`, which Lite does not have, so the launcher just restarted). On Lite, Quit now opens a full-screen `xterm` inside the kiosk's X session
+(type `exit` to return to the picker) when there is no `lightdm`. My first
+version dropped to a text console on the real screen instead: the console
+was running, but the panel stayed black after X exited on the Pi 4, the
+same display hand-off problem described in `system/back-to-kiosk.sh`, and
+neither unblanking the framebuffer nor switching virtual terminals brought
+it back. The terminal version is unit-tested; I have not yet tried it at
+the panel. After
 placing my own ROM and disk images, all five systems launched from the
 picker and worked. LisaEm needed the identity fix above, because I used a
 disk image that had already been installed. I did not try the GPIO

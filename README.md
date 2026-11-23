@@ -71,14 +71,14 @@ launch. Once inside an emulator, shut it down from the guest OS itself
 
 - **SHUT DOWN** (`S`, or click its footer text) and **QUIT** (`Q`, or
   click its footer text, which switches to the full Raspberry Pi Desktop,
-  or, on Raspberry Pi OS Lite, which has no desktop, to a text console
-  login on the panel; see "Getting back from Quit" below) both open a
-  confirmation dialog first — too disruptive to fire on a
+  or, on Raspberry Pi OS Lite, which has no desktop, opens a full-screen
+  terminal; see "Getting back from Quit" below) both open a confirmation
+  dialog first — too disruptive to fire on a
   single accidental key/click. Confirm with Return or by clicking
   CONFIRM; cancel with Escape or by clicking CANCEL.
 - **Getting back from Quit.** From the desktop, use its "Emulator
-  Launcher" icon. From the Lite console login, log in and run
-  `~/lisa-mini-pi/software/lisa-pi-launcher/system/back-to-kiosk.sh`.
+  Launcher" icon. From the Lite terminal, type `exit` and the picker
+  returns.
 - **Auto-start** (`A`): highlight a system and press `A` to make it start
   by itself at power-on; press `A` again on it to clear. The marked card
   shows an `AUTO` tag, and only one system can be marked. It applies once
@@ -162,8 +162,8 @@ after it's screwed and glued into a closed case.
 
 Start from a fresh **Raspberry Pi OS 64-bit** (Debian 13 "trixie") on a
 card of at least 32 GB. The Lite image works: the script installs whatever
-it needs that Lite leaves out. Lite has no desktop, so Quit drops to a text
-login instead. In Raspberry Pi Imager's settings, set a
+it needs that Lite leaves out. Lite has no desktop, so Quit opens a terminal
+instead. In Raspberry Pi Imager's settings, set a
 hostname, a user name and password (any user name works), and enable ssh,
 then log in and run:
 

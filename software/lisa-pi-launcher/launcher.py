@@ -191,10 +191,16 @@ def main(store: AutoStart | None = None) -> None:
         if action == "shutdown":
             subprocess.run(["systemctl", "poweroff"])
             return True
-        # action == "quit": the desktop if this machine has one, otherwise a
-        # text console login (Raspberry Pi OS Lite). See session.py.
-        session.quit_to_session()
-        return False
+        # action == "quit": the desktop if this machine has one; otherwise
+        # (Raspberry Pi OS Lite) a terminal inside this session. See session.py.
+        if session.desktop_installed():
+            session.quit_to_desktop()
+            return False
+        nonlocal real_screen
+        real_screen = _launch_selected(state, real_screen, icons, auto_id,
+                                       command=session.terminal_command(),
+                                       header="STARTING TERMINAL...")
+        return True
 
     running = True
     hovered_footer: str | None = None
@@ -318,14 +324,18 @@ def _launch_selected(
     real_screen: pygame.Surface,
     icons: dict[str, pygame.Surface],
     auto_id: str | None = None,
+    command: list[str] | None = None,
+    header: str | None = None,
 ) -> pygame.Surface:
+    """Run the highlighted system, or `command` (with its own `header`) if
+    given, with the picker stepping aside until it exits."""
     state.start_selected()
 
     # Render and flip one STARTING-phase frame first, so the
     # "STARTING <NAME>..." header text is actually visible for a moment
     # rather than being set and discarded before the next flip.
     items = _system_items_visual(state, icons, auto_id)
-    _draw_frame(real_screen, state.header_text(), items)
+    _draw_frame(real_screen, header or state.header_text(), items)
 
     # Cover the screen in solid black and leave this window mapped, rather
     # than tearing the display down and recreating it. There's no window
@@ -370,7 +380,7 @@ def _launch_selected(
         # to its whole process group as part of its shutdown sequence -
         # which was killing this launcher process too, silently, with no
         # traceback, the instant the guest OS finished shutting down.
-        subprocess.run(state.selected.command, start_new_session=True)
+        subprocess.run(command or state.selected.command, start_new_session=True)
     except OSError:
         # Missing binary, permission denied, etc. Don't let a bad
         # `command` entry crash the whole kiosk process - under
