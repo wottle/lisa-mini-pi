@@ -75,9 +75,9 @@ if [ "$(id -u)" -eq 0 ]; then
 fi
 
 TOTAL_RAM_KB="$(awk '/MemTotal/ {print $2}' /proc/meminfo 2>/dev/null || echo 0)"
-if [ "$TOTAL_RAM_KB" -gt 0 ] && [ "$TOTAL_RAM_KB" -lt 2097152 ] && { [ "$SKIP_NEXT" -eq 0 ] || [ "$SKIP_APPLE2" -eq 0 ]; }; then
+if [ "$TOTAL_RAM_KB" -gt 0 ] && [ "$TOTAL_RAM_KB" -lt 1572864 ] && { [ "$SKIP_NEXT" -eq 0 ] || [ "$SKIP_APPLE2" -eq 0 ]; }; then
   echo
-  echo "This machine has under 2GB RAM (Pi 3B territory). The project's own"
+  echo "This machine has under 1.5GB RAM (Pi 3B territory). The project's own"
   echo "Pi 3B doesn't get Previous/LinApple installed - not enough headroom"
   echo "on top of LisaEm/Basilisk II/Mini vMac (see docs/software-setup.md's"
   echo "Pi 3B note). Consider re-running with --skip-next --skip-apple2."
@@ -457,6 +457,11 @@ sudo systemctl enable --now launcher.service launcher-watchdog.timer
 if [ "$SKIP_BOOT_SPLASH" -eq 0 ]; then
 step "11. Custom boot splash + disabling the rainbow firmware screen"
 # ---------------------------------------------------------------------
+# Raspberry Pi OS Lite ships no Plymouth at all; the desktop image has it.
+# rpd-plym-splash provides the "pix" theme the splash replaces.
+if [ ! -d /usr/share/plymouth/themes/pix ]; then
+  sudo apt install -y plymouth rpd-plym-splash
+fi
 BOOT_SPLASH_DIR="$LAUNCHER_REPO/software/boot-splash"
 if [ -x "$BOOT_SPLASH_DIR/install.sh" ]; then
   sudo "$BOOT_SPLASH_DIR/install.sh"

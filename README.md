@@ -142,6 +142,7 @@ or software issue is far easier with everything exposed on a desk than
 after it's screwed and glued into a closed case.
 
 ```
+sudo apt install -y git
 git clone https://github.com/wottle/lisa-mini-pi.git ~/lisa-mini-pi
 ~/lisa-mini-pi/scripts/provision.sh
 ```
