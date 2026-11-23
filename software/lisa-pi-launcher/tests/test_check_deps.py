@@ -112,3 +112,21 @@ def test_main_always_returns_zero_even_with_failures(tmp_path, monkeypatch, caps
 
     assert exit_code == 0
     assert os.path.exists(tmp_path / "log.txt")
+
+
+def test_check_config_json_paths_expands_home(tmp_path, monkeypatch):
+    # Catches: the dependency check reporting every $HOME-based path as
+    # missing (or skipping it) because it did not expand $HOME like the
+    # launcher does.
+    (tmp_path / "emu").write_text("x")
+    monkeypatch.setenv("HOME", str(tmp_path))
+    config_path = tmp_path / "config.json"
+    config_path.write_text(json.dumps({
+        "systems": [{"id": "h", "name": "H", "subtitle": "T", "icon": str(tmp_path / "emu"),
+                     "command": ["$HOME/emu", "$HOME/nope"]}]
+    }))
+
+    results = check_deps._check_config_json_paths(str(config_path))
+
+    assert any("[OK  ]" in r and str(tmp_path / "emu") in r for r in results)
+    assert any("FAIL" in r and str(tmp_path / "nope") in r for r in results)

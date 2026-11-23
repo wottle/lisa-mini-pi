@@ -1,6 +1,7 @@
 """Loads and validates the launcher's system list from config.json."""
 
 import json
+import os
 from dataclasses import dataclass
 
 
@@ -11,6 +12,11 @@ class SystemEntry:
     subtitle: str
     icon: str
     command: list[str]
+
+
+def expand_home(arg):
+    """Expand ~ and $HOME so config.json names no particular user."""
+    return os.path.expandvars(os.path.expanduser(arg)) if isinstance(arg, str) else arg
 
 
 _REQUIRED_FIELDS = ("id", "name", "subtitle", "icon", "command")
@@ -36,6 +42,6 @@ def load_config(path: str) -> list[SystemEntry]:
             name=entry["name"],
             subtitle=entry["subtitle"],
             icon=entry["icon"],
-            command=list(entry["command"]),
+            command=[expand_home(a) for a in entry["command"]],
         ))
     return systems

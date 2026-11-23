@@ -434,9 +434,21 @@ fi
 step "10. systemd units + polkit rule (sudo)"
 # ---------------------------------------------------------------------
 SYSTEM_DIR="$LAUNCHER_DIR/system"
-sudo cp "$SYSTEM_DIR/launcher.service" "$SYSTEM_DIR/launcher-watchdog.service" \
-  "$SYSTEM_DIR/launcher-watchdog.timer" /etc/systemd/system/
-sudo cp "$SYSTEM_DIR/10-lisa-launcher-power.rules" /etc/polkit-1/rules.d/
+# The committed unit/rule files name the author's account (user "wottle",
+# /home/wottle). Install copies with this machine's user and home instead,
+# so the kiosk works under any user name. The repo files are not modified.
+ME="$(id -un)"
+install_for_me() {  # install_for_me <src> <dest-dir>
+  sed -e "s|/home/wottle|$HOME|g" \
+      -e "s|^User=wottle\$|User=$ME|" \
+      -e "s|subject.user === \"wottle\"|subject.user === \"$ME\"|g" \
+      -e "s|user \"wottle\"|user \"$ME\"|" \
+      "$1" | sudo tee "$2/$(basename "$1")" >/dev/null
+}
+for f in launcher.service launcher-watchdog.service launcher-watchdog.timer; do
+  install_for_me "$SYSTEM_DIR/$f" /etc/systemd/system
+done
+install_for_me "$SYSTEM_DIR/10-lisa-launcher-power.rules" /etc/polkit-1/rules.d
 sudo systemctl daemon-reload
 sudo systemctl disable --now lightdm 2>/dev/null || true
 sudo systemctl enable --now launcher.service launcher-watchdog.timer

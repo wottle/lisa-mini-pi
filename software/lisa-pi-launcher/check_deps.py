@@ -22,6 +22,8 @@ import shutil
 import sys
 from datetime import datetime
 
+import config  # stdlib-only module; expands $HOME like the launcher does
+
 LOG_PATH = os.path.expanduser("~/lisa-mini-pi-dependency-check.log")
 
 # Commands the kiosk session and its helper scripts assume are on PATH,
@@ -82,6 +84,7 @@ def _check_config_json_paths(config_path: str) -> list[str]:
     for system in data.get("systems", []):
         system_id = system.get("id", "?")
         command = system.get("command", [])
+        command = [config.expand_home(a) for a in command]
         for arg in command:
             # Only check things that look like absolute filesystem paths -
             # skip flags (-k, -d, ...) and bare command names resolved via

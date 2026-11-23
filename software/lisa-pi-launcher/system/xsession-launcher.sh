@@ -30,7 +30,7 @@ if [ ! -e "$HOME/.config/lisa-launcher/native-resolution" ]; then
   [ -n "$OUT" ] && xrandr --output "$OUT" --mode 1024x768 --rate 60 2>/dev/null || true
 fi
 
-cd /home/wottle/lisa-mini-pi/software/lisa-pi-launcher || exit 1
+cd "$(dirname "$0")/.." || exit 1
 
 # Non-blocking startup dependency check: logs missing binaries/ROM-disk
 # assets/systemd units to ~/lisa-mini-pi-dependency-check.log every time

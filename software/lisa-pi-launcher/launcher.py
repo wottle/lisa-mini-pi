@@ -43,7 +43,7 @@ _DIAG_EVENT_NAMES = {
 }
 
 
-_DIAG_LOG_PATH = "/home/wottle/lisa-pi-launcher/focus_diag.log"
+_DIAG_LOG_PATH = os.path.expanduser("~/lisa-pi-launcher/focus_diag.log")
 
 
 def _diag_log(msg: str) -> None:
