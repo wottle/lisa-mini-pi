@@ -36,6 +36,12 @@ power button until afterwards, when I connected an LED and a switch to
 the GPIO pins on the bench; it worked as expected. I did not test it in
 a closed case.
 
+**Second run (2026-11-23).** After those fixes I did a second fresh install
+on another 2 GB Pi 4 (Raspberry Pi OS Lite, user `admin`): `provision.sh`
+finished with no errors, and with my ROMs and disk images and the Lisa
+identity in place everything worked after a reboot, including Quit. This
+is my report ("it all seems to be working"), not a timed test.
+
 **Pi 3B note (as of 2026-09-25):** only LisaEm, Basilisk II, and Mini
 vMac are installed on the project's Pi 3B - it doesn't have the
 power/performance headroom for Previous and LinApple as well. `config.json`

@@ -100,6 +100,13 @@ launch. Once inside an emulator, shut it down from the guest OS itself
   identity copied across (see `docs/software-setup.md` §1). I then wired
   an LED and a switch to its GPIO pins on the bench, and the lit power
   button works as expected. Not tested on that Pi: a closed case.
+- **A second fresh install on a Pi 4 (2 GB), 2026-11-23, after the fixes
+  above.** Raspberry Pi OS Lite 64-bit, user name `admin`, then
+  `provision.sh` with no errors, then my own ROMs and disk images, with
+  the Lisa's hardware identity copied over. After a reboot it came up in
+  the picker, and I found everything working: all five systems, and Quit
+  (which opens a terminal on Lite). I did not time the emulators, and I
+  did not test it in a closed case.
 - **Pi 5 with an iPad 3/4 LCD and its controller.** The same patched LisaEm
   branch (`pi4-lisa-fixes`) built and running there; I checked Fill mode and
   the front power button. I have not re-checked everything else there
@@ -182,6 +189,17 @@ throughout `docs/software-setup.md`) - baking those into a public image
 would be a real copyright problem. `provision.sh` prints exactly which
 files to place where once it's done; read it before running it, like
 any script that calls `sudo`.
+
+## Getting online
+
+`provision.sh` needs internet access. An Ethernet cable is the easiest.
+For Wi-Fi on Raspberry Pi OS Lite (no desktop), either enter your network
+in Raspberry Pi Imager's settings when you flash the card, or add it
+afterwards: on the Pi, press `Q` in the picker and confirm to open the
+terminal, then run `sudo nmtui` and choose "Activate a connection" (or
+`sudo nmcli device wifi connect "name" password "…"`). Set your Wi-Fi
+country first (`sudo raspi-config`, Localisation Options) or the radio can
+stay off.
 
 ## Layout
 
