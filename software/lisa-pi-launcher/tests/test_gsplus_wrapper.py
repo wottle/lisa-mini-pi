@@ -94,3 +94,64 @@ def test_the_power_button_closes_gsplus_by_window_class_not_by_a_keystroke():
     branch = text.split("pgrep -x gsplus", 1)[1].split("elif", 1)[0]
     assert "wmctrl -x -c gsplus.gsplus" in branch
     assert "alt+F4" not in branch
+
+
+def fake_xbindkeys(bin_dir, out_dir):
+    """A stand-in xbindkeys: records its config and pid, then stays alive."""
+    script = bin_dir / "xbindkeys"
+    script.write_text(
+        "#!/bin/sh\n"
+        'while [ $# -gt 0 ]; do [ "$1" = "-f" ] && cp "$2" "' + str(out_dir) + '/xb.cfg"; shift; done\n'
+        'echo $$ > "' + str(out_dir) + '/xb.pid"\n'
+        'touch "' + str(out_dir) + '/xb.started"\n'
+        "exec sleep 60\n")
+    script.chmod(script.stat().st_mode | stat.S_IXUSR)
+
+
+def env_with_path(tmp_path, binary, bin_dir):
+    env = env_for(tmp_path, binary)
+    env["PATH"] = f"{bin_dir}:{env['PATH']}"
+    return env
+
+
+def test_f12_closes_gsplus_while_it_runs_and_the_key_helper_is_stopped_afterwards(tmp_path):
+    # Catches: no F12 quit (unlike LisaEm and LinApple), F12 closing the wrong
+    # thing, the helper not running while GSplus does, or the helper being left
+    # running after GSplus exits (it would then keep F12 grabbed for every
+    # other emulator).
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    fake_xbindkeys(bin_dir, tmp_path)
+    seen = tmp_path / "seen"
+    binary = fake_gsplus(
+        tmp_path,
+        f'for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do '
+        f'[ -e "{tmp_path}/xb.started" ] && break; sleep 0.1; done\n'
+        f'[ -e "{tmp_path}/xb.started" ] && echo helper-was-running > "{seen}"\n')
+    subprocess.run([str(WRAPPER)], stdin=subprocess.DEVNULL, env=env_with_path(tmp_path, binary, bin_dir),
+                   check=True, timeout=20)
+    assert seen.read_text().strip() == "helper-was-running"
+    config = (tmp_path / "xb.cfg").read_text()
+    assert "wmctrl -x -c gsplus.gsplus" in config
+    assert "F12" in config
+    pid = int((tmp_path / "xb.pid").read_text())
+    for _ in range(30):
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            break
+        import time
+        time.sleep(0.1)
+    else:
+        os.kill(pid, 9)
+        raise AssertionError("the key helper was still running after GSplus exited")
+
+
+def test_gsplus_still_runs_when_the_key_helper_is_not_installed(tmp_path):
+    # Catches: a machine without xbindkeys failing to start GSplus at all.
+    out = tmp_path / "ran"
+    binary = fake_gsplus(tmp_path, f'echo yes > "{out}"\n')
+    env = env_for(tmp_path, binary)
+    env["PATH"] = "/usr/bin:/bin"          # no xbindkeys here
+    subprocess.run([str(WRAPPER)], stdin=subprocess.DEVNULL, env=env, check=True, timeout=10)
+    assert out.read_text().strip() == "yes"

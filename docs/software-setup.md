@@ -554,11 +554,17 @@ of log in a minute. `~/gsplus/config.kegs` holds only `fullscreen = 1` and
 
 **Keys.** F4 opens the config menu, F5 shows or hides the status line, F6
 cycles the speed, F11 toggles fullscreen and Ctrl+F12 resets the IIgs.
-Plain F12 does nothing, so unlike LisaEm and LinApple there is no F12 quit.
-Close it by closing its window: `wmctrl -x -c gsplus.gsplus` (confirmed under
-the real launcher), which is what the front power button runs (the physical
-button itself is not yet tried). Alt+F4 also closed it when GSplus was run on
-its own, but I have not retested Alt+F4 under the launcher.
+Plain F12 does nothing in GSplus itself, so `gsplus-run-with-led.sh` adds an
+F12 quit, as LisaEm and LinApple have: while GSplus runs it also runs
+`xbindkeys` with F12 bound to the window close below (installed by
+`provision.sh`; without `xbindkeys` GSplus still runs, just without the F12
+quit). That key grab lives only as long as the GSplus session, so it cannot
+swallow the F12 that LisaEm and LinApple use.
+
+Closing its window is how GSplus quits: `wmctrl -x -c gsplus.gsplus`
+(confirmed under the real launcher), which is also what the front power
+button runs (the physical button itself is not yet tried). Alt+F4 closes it
+too (my report, under the launcher, 2026-11-25).
 
 **What I tested (Pi 5, 4 GB, 2026-11-25; my reports and screen captures).**
 ROM 01 and a 32 MB GS/OS 6 hard-drive image boot to the Finder at

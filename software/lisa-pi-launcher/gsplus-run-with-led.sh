@@ -15,6 +15,14 @@
 # machine touches hardware GSplus does not implement it prints a line per
 # access, which measured about 400 MB of log in one minute.
 #
+# F12 closes GSplus, as it does LisaEm and LinApple. GSplus itself has no quit
+# key (plain F12 does nothing in it), so while it runs this wrapper also runs
+# xbindkeys with F12 bound to the same window close the power button uses
+# (`wmctrl -x -c gsplus.gsplus`). It is a global key grab, so it exists only
+# for the length of the GSplus session and is stopped when GSplus exits:
+# otherwise it would swallow the F12 that LisaEm and LinApple need. Without
+# xbindkeys installed GSplus still runs, just without the F12 quit.
+#
 # Its standard input is detached too (</dev/null). GSplus has a debugger
 # console with a thread that reads stdin, and launcher.service gives its
 # children a terminal as stdin. With the terminal attached, closing GSplus's
@@ -36,12 +44,28 @@ turn_off_led() {
   pinctrl set "$LED_PIN" dl >/dev/null 2>&1 || true
   log "LED off"
 }
-trap turn_off_led EXIT
+
+KEYS_PID=""
+KEYS_CFG=""
+cleanup() {
+  [ -n "$KEYS_PID" ] && kill "$KEYS_PID" 2>/dev/null || true
+  [ -n "$KEYS_CFG" ] && rm -f "$KEYS_CFG"
+  turn_off_led
+}
+trap cleanup EXIT
 
 log "script start, args: $*"
 pinctrl set "$LED_PIN" op dh 2>/dev/null || true
 log "LED on - starting GSplus ($GSPLUS_BIN)"
 cd "$GSPLUS_DIR"
+if command -v xbindkeys >/dev/null 2>&1; then
+  KEYS_CFG="$(mktemp)"
+  printf '%s\n' '"wmctrl -x -c gsplus.gsplus"' '  F12' > "$KEYS_CFG"
+  DISPLAY="${DISPLAY:-:0}" xbindkeys -f "$KEYS_CFG" -n >/dev/null 2>&1 &
+  KEYS_PID=$!
+  log "F12 closes GSplus (xbindkeys pid $KEYS_PID)"
+  sleep 0.3   # give it a moment to take the key grab before GSplus starts
+fi
 status=0
 "$GSPLUS_BIN" -cfg "$GSPLUS_CFG" "$@" </dev/null >/dev/null 2>&1 || status=$?
 log "GSplus exited (status $status)"

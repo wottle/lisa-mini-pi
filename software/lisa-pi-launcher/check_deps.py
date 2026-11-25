@@ -44,6 +44,7 @@ _OPTIONAL_COMMANDS = {
     "gpiomon": "GPIO button edge detection (lisa-power-button-watcher.sh)",
     "xdotool": "sends LisaEm's F12 power-button hotkey (lisa-power-button-watcher.sh)",
     "wmctrl": "closes GSplus from the power button (lisa-power-button-watcher.sh)",
+    "xbindkeys": "makes F12 close GSplus (gsplus-run-with-led.sh)",
 }
 
 _SYSTEMD_UNITS = [
