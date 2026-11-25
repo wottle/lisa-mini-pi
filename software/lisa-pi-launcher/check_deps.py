@@ -43,6 +43,7 @@ _OPTIONAL_COMMANDS = {
     "pinctrl": "GPIO LED/button control (lisa-run-with-led.sh, the power-button watcher)",
     "gpiomon": "GPIO button edge detection (lisa-power-button-watcher.sh)",
     "xdotool": "sends LisaEm's F12 power-button hotkey (lisa-power-button-watcher.sh)",
+    "wmctrl": "closes GSplus from the power button (lisa-power-button-watcher.sh)",
 }
 
 _SYSTEMD_UNITS = [

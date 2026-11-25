@@ -15,13 +15,15 @@
 #     has no ADB/soft-power concept for this to map onto the way the Mac
 #     emulators' shutdowns do; F12 here is simply LinApple's own quit
 #     binding).
-#   - GSplus (Apple IIgs): Alt+F4. GSplus has no quit key (plain F12 does
+#   - GSplus (Apple IIgs): asks the window manager to close its window,
+#     `wmctrl -x -c gsplus.gsplus`. GSplus has no quit key (plain F12 does
 #     nothing; Ctrl+F12 is the IIgs reset), but closing its window is a
-#     clean quit, and Alt+F4 is the kiosk Openbox's own "close window"
-#     binding. Confirmed on real hardware (2026-11-25): Alt+F4 pressed on
-#     the keyboard, and `xdotool key --clearmodifiers alt+F4` sent over
-#     ssh, both closed GSplus cleanly. Not yet tried with the physical
-#     button and gpiomon.
+#     clean quit. It is closed by window class rather than by sending
+#     Alt+F4, so it does not depend on which window has keyboard focus.
+#     Confirmed on real hardware (2026-11-25): run from ssh while GSplus
+#     was started by the real launcher, GSplus was gone within a second,
+#     the picker came back and the LED went off. Not yet tried with the
+#     physical button and gpiomon.
 #   - Basilisk II and Mini vMac: deliberately NOT handled, just ignored
 #     if the button is pressed while either is running. Mini vMac (this
 #     fork) has no safe host-triggerable shutdown at all - no signal
@@ -60,8 +62,8 @@ gpiomon --bias=pull-down --edges=rising --debounce-period=20ms --chip=gpiochip0 
     echo "power button pressed - LinApple is running, sending F12"
     DISPLAY=:0 xdotool key --clearmodifiers F12
   elif pgrep -x gsplus >/dev/null 2>&1; then
-    echo "power button pressed - GSplus is running, sending Alt+F4 (window close)"
-    DISPLAY=:0 xdotool key --clearmodifiers alt+F4
+    echo "power button pressed - GSplus is running, asking the window manager to close it"
+    DISPLAY=:0 wmctrl -x -c gsplus.gsplus
   elif pgrep -x BasiliskII >/dev/null 2>&1 || pgrep -x minivmac >/dev/null 2>&1; then
     echo "power button pressed - Basilisk II/Mini vMac is running, no safe host-side shutdown trigger exists - ignoring"
   else

@@ -98,7 +98,7 @@ sudo apt install -y \
   basilisk2 \
   openbox xserver-xorg xinit x11-xserver-utils libx11-dev x11-utils \
   libgtk-3-dev \
-  gpiod xdotool xterm
+  gpiod xdotool xterm wmctrl
 
 # ---------------------------------------------------------------------
 step "2. GPIO pin state (LED off, button input with pull-down)"

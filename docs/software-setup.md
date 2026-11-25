@@ -229,12 +229,12 @@ showing (started once, alongside `openbox`, in
 dispatches to whichever emulator (if any) is currently running:
 
 - **LisaEm**: sends F12 (its power-button hotkey), via `lisa-run-with-led.sh`.
-- **GSplus** (§7.5): sends Alt+F4, which the kiosk's Openbox turns into a
-  window close; GSplus has no quit key of its own and treats a window
-  close as a clean quit. Alt+F4 pressed on a keyboard is confirmed to
-  close it, and so does `xdotool key --clearmodifiers alt+F4` sent from
-  a shell (both 2026-11-25). The physical button and `gpiomon` path has not
-  been tried with GSplus.
+- **GSplus** (§7.5): runs `wmctrl -x -c gsplus.gsplus`, which asks the window
+  manager to close GSplus's window; GSplus has no quit key of its own and
+  treats a window close as a clean quit. Confirmed 2026-11-25 by running that
+  command from ssh while GSplus was started by the real launcher: it was gone
+  within a second and the picker returned. The physical button and `gpiomon`
+  path has not been tried with GSplus.
 - **Previous**: sends F10, its documented clean-shutdown key (§6), via
   `previous-run-with-led.sh`.
 - **LinApple**: sends F12, its quit hotkey, via `linapple-run-with-led.sh`.
@@ -555,9 +555,10 @@ of log in a minute. `~/gsplus/config.kegs` holds only `fullscreen = 1` and
 **Keys.** F4 opens the config menu, F5 shows or hides the status line, F6
 cycles the speed, F11 toggles fullscreen and Ctrl+F12 resets the IIgs.
 Plain F12 does nothing, so unlike LisaEm and LinApple there is no F12 quit.
-Close it with **Alt+F4** (Openbox's close-window binding, confirmed from the
-keyboard and from `xdotool`), or with the front power button, which sends the
-same keys (the physical button itself is not yet tried).
+Close it by closing its window: `wmctrl -x -c gsplus.gsplus` (confirmed under
+the real launcher), which is what the front power button runs (the physical
+button itself is not yet tried). Alt+F4 also closed it when GSplus was run on
+its own, but I have not retested Alt+F4 under the launcher.
 
 **What I tested (Pi 5, 4 GB, 2026-11-25; my reports and screen captures).**
 ROM 01 and a 32 MB GS/OS 6 hard-drive image boot to the Finder at
@@ -567,6 +568,13 @@ The mouse and keyboard work.
 
 **What I did not test:** a Pi 4 (the speed there is unmeasured), a ROM 03,
 sound (I have no speaker fitted), joysticks, and the physical power button.
+
+**Standard input.** GSplus has a debugger console whose thread reads standard
+input, and `launcher.service` gives its children a terminal as standard
+input. With that attached, closing GSplus's window closed it on screen but the
+process never finished shutting down, so the picker never came back; the
+wrapper now starts it with `</dev/null`. (I first suspected the close request
+was reaching the picker's window; the evidence did not support that.)
 
 **One disk image hung GS/OS at the watch cursor.** The debugger showed a
 driver on it waiting forever for a card in slot 4, which GSplus does not
