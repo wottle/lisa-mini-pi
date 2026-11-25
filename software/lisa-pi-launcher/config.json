@@ -34,6 +34,13 @@
       "subtitle": "TOTAL REPLAY",
       "icon": "icons/apple2.png",
       "command": ["$HOME/lisa-mini-pi/software/lisa-pi-launcher/linapple-run-with-led.sh", "--hd1", "$HOME/TotalReplay_v6.1.hdv", "--autoboot", "--fullscreen"]
+    },
+    {
+      "id": "apple2gs",
+      "name": "APPLE IIGS",
+      "subtitle": "GS/OS",
+      "icon": "icons/apple2gs.png",
+      "command": ["$HOME/lisa-mini-pi/software/lisa-pi-launcher/gsplus-run-with-led.sh", "-rom", "$HOME/ROM.01", "-s7d1", "$HOME/gsos.hdv"]
     }
   ]
 }

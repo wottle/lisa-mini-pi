@@ -68,6 +68,13 @@ def _panel_height(row_count: int) -> int:
     return theme.PANEL_HEIGHT + extra_rows * (theme.ITEM_ROW_HEIGHT + theme.ITEMS_ROW_GAP)
 
 
+def _panel_top(row_count: int) -> int:
+    """The panel's top edge: centred vertically for however many rows it
+    has. For one row this is theme.PANEL_Y, the original position; a
+    second row grows the panel, so it moves up to stay on the screen."""
+    return max(0, (theme.SCREEN_HEIGHT - _panel_height(row_count)) // 2)
+
+
 def _row_count(item_count: int) -> int:
     if item_count == 0:
         return 1
@@ -81,7 +88,7 @@ def panel_interior_rect(row_count: int = 1) -> pygame.Rect:
     height = _panel_height(row_count)
     return pygame.Rect(
         theme.PANEL_X + theme.PANEL_CONTENT_INSET,
-        theme.PANEL_Y + theme.PANEL_CONTENT_INSET,
+        _panel_top(row_count) + theme.PANEL_CONTENT_INSET,
         theme.PANEL_WIDTH - 2 * theme.PANEL_CONTENT_INSET,
         height - 2 * theme.PANEL_CONTENT_INSET,
     )
@@ -91,13 +98,13 @@ def draw_panel(surface: pygame.Surface, row_count: int = 1) -> pygame.Rect:
     height = _panel_height(row_count)
     shadow_rect = pygame.Rect(
         theme.PANEL_X + theme.SHADOW_OFFSET,
-        theme.PANEL_Y + theme.SHADOW_OFFSET,
+        _panel_top(row_count) + theme.SHADOW_OFFSET,
         theme.PANEL_WIDTH,
         height,
     )
     surface.fill(_BLACK, shadow_rect)
 
-    panel_rect = pygame.Rect(theme.PANEL_X, theme.PANEL_Y, theme.PANEL_WIDTH, height)
+    panel_rect = pygame.Rect(theme.PANEL_X, _panel_top(row_count), theme.PANEL_WIDTH, height)
     surface.fill(_WHITE, panel_rect)
     pygame.draw.rect(surface, _BLACK, panel_rect, width=theme.BORDER_WIDTH)
 

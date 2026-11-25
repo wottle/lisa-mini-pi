@@ -32,6 +32,7 @@
 #                                   # suggests this automatically on a
 #                                   # <1.5GB-RAM machine, but never decides
 #                                   # for you.
+#   ./provision.sh --skip-gs        # skip GSplus (Apple IIgs)
 #   ./provision.sh --skip-boot-splash
 #                                   # skip the custom boot splash/rainbow
 #                                   # screen changes (cosmetic only)
@@ -50,11 +51,13 @@ set -euo pipefail
 SKIP_NEXT=0
 SKIP_APPLE2=0
 SKIP_BOOT_SPLASH=0
+SKIP_GS=0
 for arg in "$@"; do
   case "$arg" in
     --skip-next) SKIP_NEXT=1 ;;
     --skip-apple2) SKIP_APPLE2=1 ;;
     --skip-boot-splash) SKIP_BOOT_SPLASH=1 ;;
+    --skip-gs) SKIP_GS=1 ;;
     -h|--help)
       grep '^#' "$0" | sed 's/^#//'
       exit 0
@@ -223,6 +226,46 @@ else
 fi
 else
   step "7. LinApple (Apple II emulator) - skipped (--skip-apple2)"
+fi
+
+# ---------------------------------------------------------------------
+if [ "$SKIP_GS" -eq 0 ]; then
+step "7.5. GSplus (Apple IIgs emulator)"
+# ---------------------------------------------------------------------
+# GSplus is a KEGS-based IIgs emulator (GPL-3.0). The project publishes an
+# official Linux arm64 build; it needs only the system SDL3 (Debian 13 ships
+# it). Pinned to one release and checked against its SHA-256, so a changed
+# download is refused. See docs/software-setup.md section 7.5.
+GSPLUS_VERSION=1.38.0
+GSPLUS_SHA256=497dc858590c9b3c805e33bd0808491f18f5f8f1446f4b2ab0affc21669e0c58
+GSPLUS_URL="https://github.com/digarok/gsplus/releases/download/v${GSPLUS_VERSION}/GSplus-${GSPLUS_VERSION}-Linux-aarch64.tar.gz"
+GSPLUS_DIR=~/gsplus
+sudo apt-get install -y libsdl3-0
+if [ -x "$GSPLUS_DIR/gsplus" ]; then
+  skip "GSplus (found $GSPLUS_DIR/gsplus)"
+else
+  mkdir -p "$GSPLUS_DIR"
+  TMP_TGZ="$(mktemp --suffix=.tar.gz)"
+  curl -fL -o "$TMP_TGZ" "$GSPLUS_URL"
+  if ! echo "$GSPLUS_SHA256  $TMP_TGZ" | sha256sum -c - >/dev/null 2>&1; then
+    echo "error: the GSplus download does not match the pinned checksum; not installing it." >&2
+    echo "       (expected $GSPLUS_SHA256 for v$GSPLUS_VERSION; see docs/software-setup.md section 7.5)" >&2
+    rm -f "$TMP_TGZ"
+    exit 1
+  fi
+  tar xzf "$TMP_TGZ" -C "$GSPLUS_DIR"
+  rm -f "$TMP_TGZ"
+fi
+# Display settings only. The ROM and disk are passed from config.json, so the
+# startup check can verify they exist. GSplus rewrites this file as you
+# change settings in its F4 menu. Left alone if it already exists.
+if [ -f "$GSPLUS_DIR/config.kegs" ]; then
+  skip "GSplus config (found $GSPLUS_DIR/config.kegs)"
+else
+  printf '%s\n' "fullscreen = 1" "g_status_enable = 0" > "$GSPLUS_DIR/config.kegs"
+fi
+else
+  step "7.5. GSplus (Apple IIgs emulator) - skipped (--skip-gs)"
 fi
 
 # ---------------------------------------------------------------------
@@ -497,6 +540,12 @@ EOF
 if [ "$SKIP_NEXT" -eq 0 ]; then
 cat <<EOF
        Previous:    ~/nextstep.dd (your own NeXTSTEP disk image)
+EOF
+fi
+if [ "$SKIP_GS" -eq 0 ]; then
+cat <<EOF
+       Apple IIgs:  ~/ROM.01 (an Apple IIgs ROM 01, 128 KB) and ~/gsos.hdv
+                    (your own bootable GS/OS hard-drive image)
 EOF
 fi
 cat <<EOF

@@ -53,6 +53,10 @@ _SYSTEMD_UNITS = [
 
 _POLKIT_RULE = "/etc/polkit-1/rules.d/10-lisa-launcher-power.rules"
 
+# Emulators that are installed outside the package manager. Missing on a
+# machine set up with --skip-gs, which is expected there.
+_EMULATOR_BINARIES = [os.path.expanduser("~/gsplus/gsplus")]
+
 
 def _log(lines: list[str]) -> None:
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -132,6 +136,7 @@ def main() -> int:
     all_results += _check_config_json_paths(config_path)
     all_results += _check_paths(_SYSTEMD_UNITS, "systemd unit")
     all_results += _check_paths([_POLKIT_RULE], "polkit rule")
+    all_results += _check_paths(_EMULATOR_BINARIES, "emulator binary")
 
     for line in all_results:
         print(line)
