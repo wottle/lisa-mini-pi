@@ -18,8 +18,10 @@
 #   - GSplus (Apple IIgs): Alt+F4. GSplus has no quit key (plain F12 does
 #     nothing; Ctrl+F12 is the IIgs reset), but closing its window is a
 #     clean quit, and Alt+F4 is the kiosk Openbox's own "close window"
-#     binding. Confirmed on real hardware (2026-11-25) by pressing Alt+F4
-#     in GSplus; sending it with xdotool is not yet confirmed.
+#     binding. Confirmed on real hardware (2026-11-25): Alt+F4 pressed on
+#     the keyboard, and `xdotool key --clearmodifiers alt+F4` sent over
+#     ssh, both closed GSplus cleanly. Not yet tried with the physical
+#     button and gpiomon.
 #   - Basilisk II and Mini vMac: deliberately NOT handled, just ignored
 #     if the button is pressed while either is running. Mini vMac (this
 #     fork) has no safe host-triggerable shutdown at all - no signal

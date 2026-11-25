@@ -16,7 +16,7 @@ that lets you pick which vintage system to run:
 
 A physical GPIO power button + LED are wired up for the systems that
 support a clean button-triggered shutdown (Lisa, NeXT, Apple II; the
-IIgs gets Alt+F4, not yet tried with the physical button) — see
+IIgs gets Alt+F4; the physical button is not yet tried with it) — see
 `docs/software-setup.md` §2.
 
 ## Screenshots
@@ -105,9 +105,10 @@ launch. Once inside an emulator, shut it down from the guest OS itself
 - **GSplus (Apple IIgs) on a Pi 5, 2026-11-25.** I ran the official arm64
   build with a ROM 01 and a 32 MB GS/OS hard-drive image on the Pi 5. GS/OS
   boots to the Finder fullscreen at 1024x768, the mouse and keyboard work,
-  and Alt+F4 closes it. I have not tried it on a Pi 4 (the speed there is
+  and Alt+F4 closes it, whether typed or sent by `xdotool` as the
+  power-button hook does. I have not tried it on a Pi 4 (the speed there is
   unmeasured), with a ROM 03, with sound (no speaker is fitted), or with
-  the physical power button. See `docs/software-setup.md` §7.5.
+  the physical power button itself. See `docs/software-setup.md` §7.5.
 - **A second fresh install on a Pi 4 (2 GB), 2026-11-23, after the fixes
   above.** Raspberry Pi OS Lite 64-bit, user name `admin`, then
   `provision.sh` with no errors, then my own ROMs and disk images, with

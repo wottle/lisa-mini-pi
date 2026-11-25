@@ -232,8 +232,9 @@ dispatches to whichever emulator (if any) is currently running:
 - **GSplus** (§7.5): sends Alt+F4, which the kiosk's Openbox turns into a
   window close; GSplus has no quit key of its own and treats a window
   close as a clean quit. Alt+F4 pressed on a keyboard is confirmed to
-  close it; sending it with `xdotool` from the watcher is not yet
-  confirmed.
+  close it, and so does `xdotool key --clearmodifiers alt+F4` sent from
+  a shell (both 2026-11-25). The physical button and `gpiomon` path has not
+  been tried with GSplus.
 - **Previous**: sends F10, its documented clean-shutdown key (§6), via
   `previous-run-with-led.sh`.
 - **LinApple**: sends F12, its quit hotkey, via `linapple-run-with-led.sh`.
@@ -554,9 +555,9 @@ of log in a minute. `~/gsplus/config.kegs` holds only `fullscreen = 1` and
 **Keys.** F4 opens the config menu, F5 shows or hides the status line, F6
 cycles the speed, F11 toggles fullscreen and Ctrl+F12 resets the IIgs.
 Plain F12 does nothing, so unlike LisaEm and LinApple there is no F12 quit.
-Close it with **Alt+F4** (Openbox's close-window binding, confirmed), or with
-the front power button, which sends the same keys (not yet confirmed with
-the physical button).
+Close it with **Alt+F4** (Openbox's close-window binding, confirmed from the
+keyboard and from `xdotool`), or with the front power button, which sends the
+same keys (the physical button itself is not yet tried).
 
 **What I tested (Pi 5, 4 GB, 2026-11-25; my reports and screen captures).**
 ROM 01 and a 32 MB GS/OS 6 hard-drive image boot to the Finder at
